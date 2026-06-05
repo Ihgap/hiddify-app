@@ -156,8 +156,9 @@ class ConnectionButton extends HookConsumerWidget {
         AsyncData(value: Connected()) when requiresReconnect == true => Colors.teal,
         AsyncData(value: Connected()) when delay <= 0 || delay >= 65000 => const Color.fromARGB(255, 185, 176, 103),
         AsyncData(value: Connected()) => buttonTheme.connectedColor!,
-        AsyncData(value: _) => buttonTheme.idleColor!,
-        _ => Colors.red,
+        AsyncData(value: Disconnected()) => Colors.white,
+        AsyncError() => Colors.red,
+        _ => Colors.white,
       },
       image: switch (connectionStatus) {
         AsyncData(value: Connected()) when requiresReconnect == true => Assets.images.disconnectNorouz,
@@ -231,25 +232,23 @@ class _ConnectionButton extends StatelessWidget {
             ),
             width: 148,
             height: 148,
-            child: Material(
-              key: const ValueKey("home_connection_button"),
-              shape: const CircleBorder(),
-              color: Colors.white,
-              child: InkWell(
-                focusColor: Colors.grey,
-                onTap: onTap,
-                child: Padding(
-                  padding: const EdgeInsets.all(36),
-                  child: TweenAnimationBuilder(
-                    tween: ColorTween(end: buttonColor),
-                    duration: const Duration(milliseconds: 250),
-                    builder: (context, value, child) {
-                      if (useImage) {
-                        return image.image();
-                      } else {
-                        return Assets.images.logo.svg(colorFilter: ColorFilter.mode(value!, BlendMode.srcIn));
-                      }
-                    },
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeInOut,
+              color: buttonColor,
+              child: Material(
+                key: const ValueKey("home_connection_button"),
+                shape: const CircleBorder(),
+                color: Colors.transparent,
+                child: InkWell(
+                  focusColor: Colors.grey,
+                  onTap: onTap,
+                  child: Transform.translate(
+                    offset: const Offset(0, 2),
+                    child: Image.asset(
+                      'assets/icon/foreground.png',
+                      fit: BoxFit.contain,
+                    ),
                   ),
                 ),
               ),

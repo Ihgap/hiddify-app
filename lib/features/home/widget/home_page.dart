@@ -4,6 +4,7 @@ import 'package:gap/gap.dart';
 import 'package:hiddify/core/app_info/app_info_provider.dart';
 import 'package:hiddify/core/localization/translations.dart';
 import 'package:hiddify/core/router/bottom_sheets/bottom_sheets_notifier.dart';
+import 'package:hiddify/features/app_trial/app_trial_controller.dart';
 import 'package:hiddify/features/home/widget/connection_button.dart';
 import 'package:hiddify/features/profile/notifier/active_profile_notifier.dart';
 import 'package:hiddify/features/profile/widget/profile_tile.dart';
@@ -20,6 +21,8 @@ class HomePage extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final t = ref.watch(translationsProvider).requireValue;
+    // Автоактивация встроенной подписки при первом запуске (если нет профилей).
+    ref.watch(appTrialControllerProvider);
     // final hasAnyProfile = ref.watch(hasAnyProfileProvider);
     final activeProfile = ref.watch(activeProfileProvider);
 
@@ -72,22 +75,29 @@ class HomePage extends HookConsumerWidget {
         ],
       ),
       body: Container(
-        decoration: BoxDecoration(
-          image: DecorationImage(
-            image: const AssetImage('assets/images/world_map.png'), // Replace with your image path
-            fit: BoxFit.cover,
-            opacity: 0.09,
-            colorFilter: theme.brightness == Brightness.dark
-                ? ColorFilter.mode(Colors.white.withValues(alpha: .15), BlendMode.srcIn) //
-                : ColorFilter.mode(
-                    Colors.grey.withValues(alpha: 1),
-                    BlendMode.srcATop,
-                  ), // Apply white tint in dark mode
-          ),
-        ),
         child: Stack(
           alignment: Alignment.center,
           children: [
+            Positioned.fill(
+              child: Transform.translate(
+                offset: const Offset(0, 0), // map vertically centered
+                child: Transform.scale(
+                  scale: 1.5, // zoom in 1.5x
+                  child: Image.asset(
+                    'assets/images/world_map.png',
+                    fit: BoxFit.fitWidth, // always fill full width, never crop sides
+                    alignment: const Alignment(0, -0.2),
+                    opacity: const AlwaysStoppedAnimation(0.09),
+                    color: theme.brightness == Brightness.dark
+                        ? Colors.white.withValues(alpha: .15)
+                        : Colors.grey,
+                    colorBlendMode: theme.brightness == Brightness.dark
+                        ? BlendMode.srcIn
+                        : BlendMode.srcATop,
+                  ),
+                ),
+              ),
+            ),
             Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(

@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:hiddify/utils/utils.dart';
 
 abstract class Constants {
-  static const appName = "Hiddify";
+  static const appName = "TuTu4kA VPN";
   static const githubUrl = "https://github.com/hiddify/hiddify-next";
   static const licenseUrl = "https://github.com/hiddify/hiddify-next?tab=License-1-ov-file#readme";
   static const githubReleasesApiUrl = "https://api.github.com/repos/hiddify/hiddify-next/releases";
@@ -14,6 +14,14 @@ abstract class Constants {
   static const termsAndConditionsUrl = "https://hiddify.com/terms/";
   static const cfWarpPrivacyPolicy = "https://www.cloudflare.com/application/privacypolicy/";
   static const cfWarpTermsOfService = "https://www.cloudflare.com/application/terms/";
+
+  // Бэкенд бота (тот же, что обслуживает Telegram-бота и оплаты).
+  // Домен sub.ihgap.xyz — на нём nginx проксирует пути бота (/sub/, /app/).
+  static const backendBaseUrl = "https://sub.ihgap.xyz";
+  static const appActivateUrl = "$backendBaseUrl/app/activate";
+  // Должен совпадать с APP_HMAC_SECRET на бэкенде. Пустая строка = подпись не
+  // отправляется (бэкенд тоже должен иметь пустой секрет — проверка выключена).
+  static const appHmacSecret = "";
 }
 
 const kAnimationDuration = Duration(milliseconds: 250);

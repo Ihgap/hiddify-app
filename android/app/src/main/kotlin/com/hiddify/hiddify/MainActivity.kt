@@ -19,6 +19,7 @@ import com.hiddify.hiddify.constant.ServiceMode
 import com.hiddify.hiddify.constant.Status
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.plugin.common.MethodChannel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -49,6 +50,23 @@ class MainActivity : FlutterFragmentActivity(), ServiceConnection.Callback {
         flutterEngine.plugins.add(PlatformSettingsHandler())
         flutterEngine.plugins.add(EventHandler())
         flutterEngine.plugins.add(LogHandler())
+
+        // Канал для устойчивого идентификатора устройства (анти-абуз пробного периода).
+        // Settings.Secure.ANDROID_ID переживает переустановку приложения и привязан
+        // к ключу подписи + пакету, поэтому стабилен именно для нашего APK.
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.ihgap.vpn/device")
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "getAndroidId" -> {
+                        val id = android.provider.Settings.Secure.getString(
+                            contentResolver,
+                            android.provider.Settings.Secure.ANDROID_ID,
+                        )
+                        result.success(id)
+                    }
+                    else -> result.notImplemented()
+                }
+            }
 //        flutterEngine.plugins.add(GroupsChannel(lifecycleScope))
 //        flutterEngine.plugins.add(ActiveGroupsChannel(lifecycleScope))
 //        flutterEngine.plugins.add(StatsChannel(lifecycleScope))

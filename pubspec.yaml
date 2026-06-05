@@ -1,7 +1,7 @@
 name: hiddify
 description: Cross Platform Multi Protocol Proxy Frontend.
 publish_to: "none"
-version: 4.1.2+40102
+version: 1.0.8+10008
 
 environment:
   sdk: ^3.10.4
@@ -36,6 +36,7 @@ dependencies:
   shared_preferences: ^2.5.2
   # shared_preferences_android: ^2.4.8
   dio: ^5.4.1
+  crypto: ^3.0.3 # HMAC для подписи запросов /app/activate
   ffi: ^2.1.2
   path_provider: ^2.1.1
   mobile_scanner: ^7.2.0
@@ -147,6 +148,7 @@ dev_dependencies:
   ffigen: ^19.1.0
   slang_build_runner: ^4.4.0
   flutter_gen_runner: ^5.4.0
+  flutter_launcher_icons: ^0.14.4
   dart_mappable_builder: ^4.2.1
   # protoc_builder: ^0.4.1
   # google_protobuf: ^3.20.1;
@@ -156,6 +158,7 @@ flutter:
   assets:
     # - assets/core/geoip.db
     # - assets/core/geosite.db
+    - assets/icon/foreground.png
     - assets/images/logo.svg
     - assets/images/tray_icon.ico
     - assets/images/tray_icon.png
@@ -186,13 +189,21 @@ flutter_gen:
   integrations:
     flutter_svg: true
 
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/icon/icon.png"
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/icon/foreground.png"
+  min_sdk_android: 21
+
 flutter_native_splash:
   color: "#ffffff"
-  image: assets/images/source/ic_launcher_splash.png
+  image: assets/icon/splash.png
   android_gravity: center
   android_12:
     color: "#ffffff"
-    image: assets/images/source/ic_launcher_foreground.png
+    image: assets/icon/foreground.png
 
 ffigen:
   name: "HiddifyCoreNativeLibrary"
