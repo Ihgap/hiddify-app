@@ -93,6 +93,21 @@ class UnknownIPText extends HookConsumerWidget {
   }
 }
 
+/// Извлекает ISO-код страны из первого флаг-эмодзи в строке
+/// (пара regional indicator символов, напр. 🇫🇮 → "FI").
+/// Возвращает null, если флага в строке нет.
+String? countryCodeFromFlagEmoji(String s) {
+  final runes = s.runes.toList();
+  for (var i = 0; i + 1 < runes.length; i++) {
+    final a = runes[i];
+    final b = runes[i + 1];
+    if (a >= 0x1F1E6 && a <= 0x1F1FF && b >= 0x1F1E6 && b <= 0x1F1FF) {
+      return String.fromCharCode(a - 0x1F1E6 + 0x41) + String.fromCharCode(b - 0x1F1E6 + 0x41);
+    }
+  }
+  return null;
+}
+
 class IPCountryFlag extends HookConsumerWidget {
   const IPCountryFlag({
     required this.countryCode,

@@ -13,6 +13,7 @@ import 'package:hiddify/core/router/dialog/dialog_notifier.dart';
 import 'package:hiddify/core/router/go_router/helper/active_breakpoint_notifier.dart';
 import 'package:hiddify/core/widget/adaptive_icon.dart';
 import 'package:hiddify/core/widget/adaptive_menu.dart';
+import 'package:hiddify/features/connection/notifier/connection_notifier.dart';
 import 'package:hiddify/features/profile/model/profile_entity.dart';
 import 'package:hiddify/features/profile/notifier/profile_notifier.dart';
 import 'package:hiddify/features/profile/overview/profiles_notifier.dart';
@@ -95,10 +96,13 @@ class ProfileTile extends HookConsumerWidget {
                         : ProfileTileConst.cardBorderRadius,
                     onTap: () {
                       if (isMain) {
-                        if (Breakpoint(context).isMobile()) {
-                          ref.read(bottomSheetsNotifierProvider.notifier).showProfilesOverview();
+                        // Тап по карточке подписки → список наших серверов.
+                        // Подключён → страница «Прокси» (live, с пингом).
+                        // Отключён → всплывающий лист со списком из подписки.
+                        if (ref.read(serviceRunningProvider)) {
+                          context.goNamed('proxies');
                         } else {
-                          context.goNamed('profiles');
+                          ref.read(bottomSheetsNotifierProvider.notifier).showProfilesOverview();
                         }
                       } else {
                         if (selectActiveMutation.state.isInProgress) return;

@@ -49,6 +49,11 @@ class ProfileParser {
     'enable-fragment',
   ];
 
+  /// Маркеры серверов, которые приложение вырезает из подписки на клиенте
+  /// (по имени в #fragment ссылки). Российский сервер не должен попадать ни в
+  /// балансер (urltest), ни в ручной выбор. Чтобы добавить ещё — допиши сюда.
+  static const excludedServerMarkers = ['🇷🇺', 'Росси'];
+
   final Ref _ref;
   final DioHttpClient _httpClient;
 
@@ -170,6 +175,7 @@ class ProfileParser {
       cancelToken: cancelToken ?? CancelToken(),
       ref: _ref,
     );
+    await stripExcludedServers(tempFilePath);
     // fixing headers before return
     return rs.headers.map.map((key, value) {
       if (value.length == 1) return MapEntry(key, value.first);
@@ -236,6 +242,49 @@ class ProfileParser {
     }
   }
 
+  /// Вырезает из скачанной подписки серверы из [excludedServerMarkers]
+  /// (по имени в #fragment ссылки) ещё до того, как sing-box распарсит конфиг.
+  /// Так RU-сервер не появляется ни в балансере, ни в списке выбора.
+  ///
+  /// Подписка может быть base64 или plain-текстом — сохраняем исходный формат.
+  /// На любой ошибке файл остаётся нетронутым: лучше показать все серверы, чем
+  /// случайно оставить пользователя без единого.
+  Future<void> stripExcludedServers(String tempFilePath) async {
+    try {
+      final raw = (await File(tempFilePath).readAsString()).trim();
+      if (raw.isEmpty) return;
+
+      final decoded = safeDecodeBase64(raw);
+      final wasBase64 = decoded != raw;
+      final lines = decoded.split('\n');
+
+      bool isExcluded(String line) {
+        final l = line.trim();
+        if (l.isEmpty) return false;
+        final hashIndex = l.indexOf('#');
+        var name = hashIndex >= 0 ? l.substring(hashIndex + 1) : l;
+        try {
+          name = Uri.decodeComponent(name);
+        } catch (_) {
+          // имя не URL-encoded — сравниваем как есть
+        }
+        return excludedServerMarkers.any(name.contains);
+      }
+
+      final kept = lines.where((l) => !isExcluded(l)).toList();
+      // Ничего не вырезали — файл не трогаем.
+      if (kept.length == lines.length) return;
+      // Подстраховка: не отдаём пустую подписку.
+      if (kept.every((l) => l.trim().isEmpty)) return;
+
+      final newDecoded = kept.join('\n');
+      final out = wasBase64 ? base64.encode(utf8.encode(newDecoded)) : newDecoded;
+      await File(tempFilePath).writeAsString(out);
+    } catch (_) {
+      // оставляем файл как есть
+    }
+  }
+
   static Either<ProfileFailure, Map<String, dynamic>> populateHeaders({
     required String content,
     Map<String, dynamic>? remoteHeaders,
@@ -284,7 +333,10 @@ class ProfileParser {
     final values = subInfoStr.split(';');
     final map = {for (final v in values) v.split('=').first.trim(): num.tryParse(v.split('=').second.trim())?.toInt()};
     if (map case {"upload": final upload?, "download": final download?, "total": final total, "expire": var expire}) {
-      final total1 = (total == null || total == 0) ? infiniteTrafficThreshold + 1 : total;
+      // total=0 (безлимит) → значение ВЫШЕ порога "∞" (10 ТБ), иначе карточка
+      // показывала бы старый сентинел (857 ГБ) как реальный лимит.
+      const unlimitedBytes = 100 * 1099511627776; // 100 ТиБ ≈ безлимит
+      final total1 = (total == null || total == 0) ? unlimitedBytes : total;
       expire = (expire == null || expire == 0) ? infiniteTimeThreshold : expire;
       return SubscriptionInfo(
         upload: upload,

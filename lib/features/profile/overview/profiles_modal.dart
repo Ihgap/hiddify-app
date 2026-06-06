@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hiddify/core/localization/translations.dart';
 import 'package:hiddify/core/model/failures.dart';
 import 'package:hiddify/core/router/dialog/dialog_notifier.dart';
+import 'package:hiddify/features/connection/notifier/connection_notifier.dart';
 import 'package:hiddify/features/profile/notifier/profiles_update_notifier.dart';
 import 'package:hiddify/features/profile/overview/profiles_notifier.dart';
 import 'package:hiddify/features/profile/widget/profile_tile.dart';
-import 'package:hiddify/utils/utils.dart';
+import 'package:hiddify/features/proxy/active/ip_widget.dart';
+import 'package:hiddify/features/proxy/overview/offline_servers.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 class ProfilesModal extends HookConsumerWidget {
@@ -17,6 +18,7 @@ class ProfilesModal extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final t = ref.watch(translationsProvider).requireValue;
     final asyncProfiles = ref.watch(profilesNotifierProvider);
+    final servers = ref.watch(offlineServersProvider).valueOrNull ?? const <String>[];
 
     ref.listen(profilesNotifierProvider, (_, next) {
       if (next.hasValue && next.value!.isEmpty) {
@@ -24,29 +26,66 @@ class ProfilesModal extends HookConsumerWidget {
       }
     });
 
-    final initialSize = PlatformUtils.isDesktop ? .60 : .35;
+    // Запоминаем выбор (сервер или «Автоматически»=lowest), поднимаем VPN и
+    // закрываем лист. Применит выбор глобальный listener в App.
+    void connectAndClose(String pendingTagDisplay, String label) {
+      ref.read(pendingServerSelectionProvider.notifier).state = pendingTagDisplay;
+      ref.read(connectionNotifierProvider.notifier).toggleConnection();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Подключение: $label…'), duration: const Duration(seconds: 2)),
+      );
+      if (context.canPop()) context.pop();
+    }
+
     return SafeArea(
       child: asyncProfiles.when(
-        data: (data) => DraggableScrollableSheet(
-          initialChildSize: initialSize,
-          maxChildSize: 0.85,
-          expand: false,
-          builder: (context, scrollController) => ScrollConfiguration(
-            behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+        // Высота — по контенту (без лишнего пространства), но не выше 85% экрана.
+        data: (data) => ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.85),
+          child: SingleChildScrollView(
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Expanded(
-                  child: ListView.separated(
-                    padding: const EdgeInsets.all(12),
-                    separatorBuilder: (context, index) => const Gap(12),
-                    // shrinkWrap: true,
-                    controller: scrollController,
-                    itemBuilder: (context, index) => ProfileTile(profile: data[index]),
-                    itemCount: data.length,
+                // Подписка (профиль)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+                  child: Column(
+                    children: [
+                      for (final profile in data)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: ProfileTile(profile: profile),
+                        ),
+                    ],
                   ),
                 ),
+
+                // Список серверов под подпиской (как раскрытый список)
+                if (servers.isNotEmpty) ...[
+                  // «Автоматически» — url-test (lowest), подключение к лучшему серверу.
+                  ListTile(
+                    dense: true,
+                    leading: const Icon(Icons.bolt_rounded, size: 28),
+                    title: const Text('Автоматически'),
+                    subtitle: const Text('Лучший сервер по пингу'),
+                    trailing: const Icon(Icons.power_settings_new_rounded, size: 18),
+                    onTap: () => connectAndClose('lowest', 'Автоматически'),
+                  ),
+                  for (final name in servers)
+                    ListTile(
+                      dense: true,
+                      leading: IPCountryFlag(countryCode: countryCodeFromFlagEmoji(name), size: 34),
+                      title: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis),
+                      trailing: const Icon(Icons.power_settings_new_rounded, size: 18),
+                      onTap: () => connectAndClose(name, name),
+                    ),
+                ],
+
+                const Divider(height: 12),
+
+                // Кнопки управления подпиской (как было по умолчанию)
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16).copyWith(bottom: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 16).copyWith(bottom: 8, top: 4),
                   child: Wrap(
                     spacing: 8,
                     runSpacing: 8,
@@ -70,8 +109,14 @@ class ProfilesModal extends HookConsumerWidget {
             ),
           ),
         ),
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stackTrace) => Text(t.presentShortError(error)),
+        loading: () => const Padding(
+          padding: EdgeInsets.all(32),
+          child: Center(child: CircularProgressIndicator()),
+        ),
+        error: (error, stackTrace) => Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(t.presentShortError(error)),
+        ),
       ),
     );
   }

@@ -1,7 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:hiddify/core/app_info/app_info_provider.dart';
-import 'package:hiddify/core/model/environment.dart';
 import 'package:hiddify/core/model/region.dart';
 import 'package:hiddify/core/preferences/actions_at_closing.dart';
 
@@ -96,7 +94,7 @@ abstract class Preferences {
 
   static final markNewProfileActive = PreferencesNotifier.create<bool, bool>("mark_new_profile_active", true);
 
-  static final dynamicNotification = PreferencesNotifier.create<bool, bool>("dynamic_notification", true);
+  static final dynamicNotification = PreferencesNotifier.create<bool, bool>("dynamic_notification", false);
 
   static final autoCheckIp = PreferencesNotifier.create<bool, bool>("auto_check_ip", true);
 
@@ -121,7 +119,7 @@ class DebugModeNotifier extends _$DebugModeNotifier {
   late final _pref = PreferencesEntry(
     preferences: ref.watch(sharedPreferencesProvider).requireValue,
     key: "debug_mode",
-    defaultValue: ref.read(environmentProvider) == Environment.dev,
+    defaultValue: false,
   );
 
   @override

@@ -13,10 +13,14 @@ import 'package:hiddify/core/router/go_router/go_router_notifier.dart';
 import 'package:hiddify/core/router/go_router/helper/active_breakpoint_notifier.dart';
 import 'package:hiddify/core/theme/app_theme.dart';
 import 'package:hiddify/core/theme/theme_preferences.dart';
+import 'package:hiddify/features/app_trial/app_trial_controller.dart';
 import 'package:hiddify/features/app_update/notifier/app_update_notifier.dart';
+import 'package:hiddify/features/connection/notifier/connection_notifier.dart';
 import 'package:hiddify/features/connection/widget/connection_wrapper.dart';
 import 'package:hiddify/features/per_app_proxy/overview/per_app_proxy_service_notifier.dart';
 import 'package:hiddify/features/profile/notifier/profiles_update_notifier.dart';
+import 'package:hiddify/features/proxy/overview/offline_servers.dart';
+import 'package:hiddify/features/proxy/overview/proxies_overview_notifier.dart';
 import 'package:hiddify/features/shortcut/shortcut_wrapper.dart';
 import 'package:hiddify/features/system_tray/notifier/system_tray_notifier.dart';
 import 'package:hiddify/features/window/widget/window_wrapper.dart';
@@ -49,6 +53,11 @@ class App extends HookConsumerWidget with WidgetsBindingObserver, PresLogger {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (isOnPauseCalled && PlatformUtils.isAndroid) ref.invalidate(perAppProxyServiceProvider);
       isOnPauseCalled = false;
+      // Пересинхронизировать подписку: ловим оплату/привязку, сделанную в боте,
+      // пока пользователь был вне приложения. Отложено в postFrame — на первом
+      // запуске onResume вызывается из initState хука, где обращение к provider
+      // через inherited widget запрещено (assert _debugIsInitHook).
+      ref.invalidate(subscriptionSyncProvider);
     });
   }
 
@@ -63,6 +72,53 @@ class App extends HookConsumerWidget with WidgetsBindingObserver, PresLogger {
     final activeBreakpoint = Breakpoint(context).activeBreakpoint;
 
     ref.listen(foregroundProfilesUpdateNotifierProvider, (_, _) {});
+
+    // Когда VPN отключается — догоняем отложенный синк подписки (миграция/refresh
+    // профиля, который мы не делали на живом туннеле, чтобы не ронять TUN).
+    //
+    // ВАЖНО: при ручном обновлении/реконнекте туннель кратко проходит через
+    // Disconnected. Нельзя синкать в этот момент — миграция профиля посреди
+    // реконнекта подвешивает соединение в "Отключение". Поэтому ждём и синкаем
+    // только если соединение осталось отключённым (реальный дисконнект, а не
+    // транзит реконнекта).
+    ref.listen(connectionNotifierProvider, (prev, next) {
+      final now = next.valueOrNull;
+      if (now == null || !now.isDisconnected) return;
+      Future.delayed(const Duration(seconds: 4), () {
+        final current = ref.read(connectionNotifierProvider).valueOrNull;
+        if (current != null && current.isDisconnected) {
+          ref.invalidate(subscriptionSyncProvider);
+        }
+      });
+    });
+
+    // Применяем сервер, выбранный в офлайн-списке (тап по серверу при выключенном
+    // VPN): как только ядро поднялось и прокси доступны — переключаем на него.
+    // Живёт в App (всегда смонтирован), поэтому навигация на страницу прокси не
+    // нужна — подключение к выбранному серверу происходит на месте.
+    ref.listen(proxiesOverviewNotifierProvider, (_, next) {
+      final group = next.valueOrNull;
+      if (group == null || group.items.isEmpty) return;
+
+      // 1) применить сервер, выбранный в офлайн-списке
+      final pending = ref.read(pendingServerSelectionProvider);
+      if (pending != null) {
+        final matches = group.items.where((e) => e.tagDisplay == pending);
+        if (matches.isNotEmpty) {
+          ref.read(proxiesOverviewNotifierProvider.notifier).changeProxy(group.tag, matches.first.tag);
+        }
+        ref.read(pendingServerSelectionProvider.notifier).state = null;
+        return;
+      }
+
+      // 2) не используем round-robin "balance": если ядро выбрало его —
+      // переключаем на "lowest" (url-test, «Автоматически»).
+      final balance = group.items.where((e) => e.tagDisplay.trim().toLowerCase() == 'balance');
+      final lowest = group.items.where((e) => e.tagDisplay.trim().toLowerCase() == 'lowest');
+      if (balance.isNotEmpty && lowest.isNotEmpty && group.selected == balance.first.tag) {
+        ref.read(proxiesOverviewNotifierProvider.notifier).changeProxy(group.tag, lowest.first.tag);
+      }
+    });
     if (PlatformUtils.isAndroid) ref.listen(perAppProxyServiceProvider, (_, _) {});
     if (PlatformUtils.isDesktop) ref.listen(systemTrayNotifierProvider, (_, _) {});
 

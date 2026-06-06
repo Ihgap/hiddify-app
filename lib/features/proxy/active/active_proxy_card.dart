@@ -64,7 +64,9 @@ class ActiveProxyFooter extends ConsumerWidget with InfraLogger {
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8),
                 child: IPCountryFlag(
-                  countryCode: activeProxy.ipinfo.countryCode,
+                  // флаг из эмодзи в имени сервера, а не из гео-IP (см. proxy_tile)
+                  countryCode:
+                      countryCodeFromFlagEmoji(activeProxy.tagDisplay) ?? activeProxy.ipinfo.countryCode,
                   organization: activeProxy.ipinfo.org,
                   size: 48,
                 ),

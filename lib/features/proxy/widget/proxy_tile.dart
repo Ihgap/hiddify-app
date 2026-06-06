@@ -8,11 +8,24 @@ import 'package:hiddify/utils/platform_utils.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 class ProxyTile extends HookConsumerWidget with PresLogger {
-  const ProxyTile(this.proxy, {super.key, required this.selected, required this.onTap});
+  const ProxyTile(
+    this.proxy, {
+    super.key,
+    required this.selected,
+    required this.onTap,
+    this.subtitleOverride,
+    this.titleOverride,
+  });
 
   final OutboundInfo proxy;
   final bool selected;
   final GestureTapCallback? onTap;
+
+  /// Если задано — заменяет стандартную подпись (тип + выбранный сервер).
+  final String? subtitleOverride;
+
+  /// Если задано — заменяет заголовок (имя). Напр. «Автоматически» для url-test.
+  final String? titleOverride;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -21,30 +34,32 @@ class ProxyTile extends HookConsumerWidget with PresLogger {
     return ListTile(
       // shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       title: Text(
-        proxy.tagDisplay,
+        titleOverride ?? proxy.tagDisplay,
         overflow: TextOverflow.ellipsis,
         style: PlatformUtils.isWindows ? const TextStyle(fontFamily: FontFamily.emoji) : null,
       ),
       leading: IPCountryFlag(
-        countryCode: proxy.ipinfo.countryCode,
+        countryCode: _flagCountryCode(),
         organization: proxy.ipinfo.org,
         size: 40,
         padding: const EdgeInsetsDirectional.only(end: 8),
       ),
-      subtitle: Text.rich(
-        TextSpan(
-          text: proxy.type,
-          children: [
-            if (proxy.isGroup)
+      subtitle: subtitleOverride != null
+          ? Text(subtitleOverride!, maxLines: 1, overflow: TextOverflow.ellipsis)
+          : Text.rich(
               TextSpan(
-                text: ' (${proxy.groupSelectedTagDisplay.trim()})',
-                style: Theme.of(context).textTheme.bodySmall,
+                text: proxy.type,
+                children: [
+                  if (proxy.isGroup)
+                    TextSpan(
+                      text: ' (${proxy.groupSelectedTagDisplay.trim()})',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                ],
               ),
-          ],
-        ),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
       trailing: Column(
         children: [
           if (proxy.urlTestDelay != 0)
@@ -63,6 +78,20 @@ class ProxyTile extends HookConsumerWidget with PresLogger {
       onLongPress: () async => await ref.read(dialogNotifierProvider.notifier).showProxyInfo(outboundInfo: proxy),
       horizontalTitleGap: 4,
     );
+  }
+
+  /// Флаг страны берём из эмодзи в имени сервера (его задаёт наш бэкенд),
+  /// а не из гео-IP реального адреса: один и тот же сервер может физически
+  /// стоять в другой стране, и тогда гео-IP показывал бы неверный флаг.
+  /// Для групп без эмодзи пробуем имя выбранного сервера, иначе — гео-IP.
+  String? _flagCountryCode() {
+    final fromTag = countryCodeFromFlagEmoji(proxy.tagDisplay);
+    if (fromTag != null) return fromTag;
+    if (proxy.isGroup) {
+      final fromSelected = countryCodeFromFlagEmoji(proxy.groupSelectedTagDisplay);
+      if (fromSelected != null) return fromSelected;
+    }
+    return proxy.ipinfo.countryCode;
   }
 
   Color delayColor(BuildContext context, int delay) {

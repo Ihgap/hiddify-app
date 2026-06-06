@@ -228,14 +228,30 @@ class _ConnectionButton extends StatelessWidget {
             clipBehavior: Clip.antiAlias,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              boxShadow: [BoxShadow(blurRadius: 16, color: buttonColor.withValues(alpha: .5))],
+              boxShadow: [
+                // soft drop shadow for depth (always visible)
+                BoxShadow(blurRadius: 12, offset: const Offset(0, 6), color: Colors.black.withValues(alpha: .25)),
+                // colored glow matching the connection state
+                BoxShadow(blurRadius: 18, spreadRadius: 1, color: buttonColor.withValues(alpha: .45)),
+              ],
             ),
             width: 148,
             height: 148,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 250),
               curve: Curves.easeInOut,
-              color: buttonColor,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                // top-to-bottom gradient gives the circle a 3D, convex look
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Color.alphaBlend(Colors.white.withValues(alpha: .35), buttonColor),
+                    Color.alphaBlend(Colors.black.withValues(alpha: .12), buttonColor),
+                  ],
+                ),
+              ),
               child: Material(
                 key: const ValueKey("home_connection_button"),
                 shape: const CircleBorder(),

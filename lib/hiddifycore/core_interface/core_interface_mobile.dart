@@ -28,8 +28,11 @@ class CoreInterfaceMobile extends CoreInterface with InfraLogger {
   late Uint8List serverPublicKey;
   static final cert = CryptoUtils.generateEcKeyPair();
 
-  static const portBack = 17079;
-  static const portFront = 17078;
+  // Уникальные порты ядра (а не дефолтные 17078/17079 как в стоковом Hiddify):
+  // иначе при запущенном нашем ядре стоковый Hiddify на том же телефоне
+  // подключается к НАШЕМУ ядру по 127.0.0.1:порт и показывает себя включённым.
+  static const portBack = 19079;
+  static const portFront = 19078;
 
   bool _isBgClientAvailable = false;
   bool _debug = false;
