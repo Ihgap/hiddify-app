@@ -2,4 +2,6 @@
 <resources>
 
 	<color name="ic_launcher_background">#FFFFFF</color>
+	<!-- Цвет кнопки «Стоп» в уведомлении (светлая шторка) -->
+	<color name="notif_action">#1565C0</color>
 </resources>

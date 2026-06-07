@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<!-- Цвет кнопки «Стоп» в уведомлении (тёмная шторка) -->
+	<color name="notif_action">#82B1FF</color>
+</resources>

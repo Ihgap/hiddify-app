@@ -10,6 +10,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
 import android.util.Log
+import android.widget.RemoteViews
 import androidx.annotation.StringRes
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
@@ -70,14 +71,35 @@ class ServiceNotification(private val status: MutableLiveData<Status>, private v
     private var receiverRegistered = false
 
 
+    // PendingIntent кнопки «Стоп» — та же, что раньше слала Action.SERVICE_CLOSE.
+    private val stopPendingIntent by lazy {
+        PendingIntent.getBroadcast(
+            service,
+            0,
+            Intent(Action.SERVICE_CLOSE).setPackage(Application.application.packageName),
+            flags
+        )
+    }
+
+    // Кастомный вид уведомления со «Стоп» прямо в макете — чтобы кнопка была
+    // видна в СВЁРНУТОМ уведомлении, без необходимости его разворачивать
+    // (обычный addAction показывается только в развёрнутом виде).
+    private fun buildContentView(title: String, text: String): RemoteViews {
+        val rv = RemoteViews(service.packageName, R.layout.notification_vpn)
+        rv.setTextViewText(R.id.notif_title, title.takeIf { it.isNotBlank() } ?: "VPN")
+        rv.setTextViewText(R.id.notif_text, text)
+        rv.setOnClickPendingIntent(R.id.notif_stop, stopPendingIntent)
+        return rv
+    }
+
     private val notificationBuilder by lazy {
         NotificationCompat.Builder(service, notificationChannel)
                 .setShowWhen(false)
                 .setOngoing(true)
-                .setContentTitle("Hiddify")
                 .setOnlyAlertOnce(true)
                 .setSmallIcon(R.drawable.ic_stat_logo)
                 .setCategory(NotificationCompat.CATEGORY_SERVICE)
+                .setStyle(NotificationCompat.DecoratedCustomViewStyle())
                 .setContentIntent(
                         PendingIntent.getActivity(
                                 service,
@@ -89,20 +111,7 @@ class ServiceNotification(private val status: MutableLiveData<Status>, private v
                                 flags
                         )
                 )
-                .setPriority(NotificationCompat.PRIORITY_LOW).apply {
-                    addAction(
-                            NotificationCompat.Action.Builder(
-                                    0, service.getText(R.string.stop), PendingIntent.getBroadcast(
-                                    service,
-                                    0,
-                                    Intent(Action.SERVICE_CLOSE).setPackage(
-                                        Application.application.packageName
-                                    ),
-                                    flags
-                            )
-                            ).build()
-                    )
-                }
+                .setPriority(NotificationCompat.PRIORITY_LOW)
     }
 
     fun show(profileName: String, @StringRes contentTextId: Int) {
@@ -113,10 +122,11 @@ class ServiceNotification(private val status: MutableLiveData<Status>, private v
                 )
             )
         }
+        val title = profileName.takeIf { it.isNotBlank() } ?: "VPN"
         service.startForeground(
             notificationId, notificationBuilder
-                .setContentTitle(profileName.takeIf { it.isNotBlank() } ?: "Hiddify")
-                .setContentText(service.getString(contentTextId)).build()
+                .setCustomContentView(buildContentView(title, service.getString(contentTextId)))
+                .build()
         )
     }
 
@@ -146,7 +156,7 @@ class ServiceNotification(private val status: MutableLiveData<Status>, private v
         val title = "${status.current_profile}"
         Application.notificationManager.notify(
                 notificationId,
-                notificationBuilder.setContentTitle(title).setContentText(content).build()
+                notificationBuilder.setCustomContentView(buildContentView(title, content)).build()
         )
     }
 

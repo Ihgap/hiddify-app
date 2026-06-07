@@ -139,8 +139,11 @@ abstract class ConfigOptions {
 
   static final connectionTestUrl = PreferencesNotifier.create<String, String>(
     "connection-test-url",
-    "http://captive.apple.com/hotspot-detect.html",
+    // Cloudflare anycast generate_204: лёгкий (204 No Content), узлы рядом с
+    // нашими серверами → пинг ≈ чистая «телефон → сервер».
+    "http://cp.cloudflare.com/generate_204",
     possibleValues: List.of([
+      "http://cp.cloudflare.com/generate_204",
       "http://connectivitycheck.gstatic.com/generate_204",
       "http://www.gstatic.com/generate_204",
       "https://www.gstatic.com/generate_204",
@@ -157,7 +160,7 @@ abstract class ConfigOptions {
 
   static final urlTestInterval = PreferencesNotifier.create<Duration, int>(
     "url-test-interval",
-    const Duration(minutes: 10),
+    const Duration(minutes: 5),
     mapFrom: const IntervalInSecondsConverter().fromJson,
     mapTo: const IntervalInSecondsConverter().toJson,
   );
