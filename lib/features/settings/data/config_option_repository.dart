@@ -266,7 +266,9 @@ abstract class ConfigOptions {
 
   static final extraSecurityMode = PreferencesNotifier.create<ChainMode, String>(
     "extra-security-mode",
-    ChainMode.warp,
+    // Не WARP: цепочка по умолчанию выключена, но при mode=warp приложение
+    // показывает диалог согласия Cloudflare WARP при первом подключении.
+    ChainMode.profile,
     mapFrom: ChainMode.values.byName,
     mapTo: (value) => value.name,
   );

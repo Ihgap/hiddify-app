@@ -23,9 +23,12 @@ class HomePage extends HookConsumerWidget {
     final theme = Theme.of(context);
     final t = ref.watch(translationsProvider).requireValue;
     // Синхронизация встроенной подписки: старт + (через App.onResume) возврат из фона.
-    ref.watch(subscriptionSyncProvider);
-    // final hasAnyProfile = ref.watch(hasAnyProfileProvider);
+    final syncState = ref.watch(subscriptionSyncProvider);
     final activeProfile = ref.watch(activeProfileProvider);
+    // Первый запуск: профиля ещё нет, а синк скачивает подписку — держим экран
+    // загрузки, чтобы не мелькал пустой список и подписка появилась сразу.
+    final hasAnyProfile = ref.watch(hasAnyProfileProvider).valueOrNull ?? false;
+    final firstLaunchLoading = !hasAnyProfile && syncState.isLoading;
 
     return Scaffold(
       appBar: AppBar(
@@ -93,12 +96,24 @@ class HomePage extends HookConsumerWidget {
                 ),
               ),
             ),
-            Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(
-                  maxWidth: 600, // Set the maximum width here
+            if (firstLaunchLoading)
+              Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const CircularProgressIndicator(),
+                    const Gap(16),
+                    Text('Загрузка подписки…', style: theme.textTheme.bodyMedium),
+                  ],
                 ),
-                child: CustomScrollView(
+              )
+            else
+              Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    maxWidth: 600, // Set the maximum width here
+                  ),
+                  child: CustomScrollView(
                   slivers: [
                     // switch (activeProfile) {
                     // AsyncData(value: final profile?) =>

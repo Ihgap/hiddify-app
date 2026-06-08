@@ -17,7 +17,9 @@ bool _debugIntroPage = false;
 abstract class Preferences {
   static final introCompleted = PreferencesNotifier.create(
     "intro_completed",
-    false,
+    // По умолчанию intro считается пройденным — приветственный экран Hiddify
+    // при первом запуске не показываем.
+    true,
     overrideValue: _debugIntroPage && kDebugMode ? false : null,
   );
 
@@ -109,7 +111,9 @@ abstract class Preferences {
     mapTo: (value) => value.name,
   );
 
-  static final warpConsentGiven = PreferencesNotifier.create<bool, bool>("warp-consent-given", false);
+  // true по умолчанию: WARP мы не используем, диалог согласия Cloudflare WARP
+  // не должен показываться ни на одном устройстве/платформе.
+  static final warpConsentGiven = PreferencesNotifier.create<bool, bool>("warp-consent-given", true);
 
   static final showRouteGeneralOptions = PreferencesNotifier.create<bool, bool>("show-route-general-options", true);
 }

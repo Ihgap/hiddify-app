@@ -102,8 +102,8 @@ class MyAdaptiveLayout extends HookConsumerWidget {
     ShellRouteAction(Icons.power_settings_new_rounded, t.pages.home.title),
     if (showProfilesAction && !isMobileBreakpoint) ShellRouteAction(Icons.view_list_rounded, t.pages.profiles.title),
     ShellRouteAction(Icons.settings_rounded, t.pages.settings.title),
-    if (!isMobileBreakpoint) ShellRouteAction(Icons.description_rounded, t.pages.logs.title),
-    if (!isMobileBreakpoint) ShellRouteAction(Icons.info_rounded, t.pages.about.title),
+    // «Логи» и «О программе» скрыты из планшетной/десктоп нав-панели
+    // (ветки роутера остаются, но в навигацию не выводятся).
   ];
 
   List<NavigationDestination> _navDests(List<ShellRouteAction> actions) =>
