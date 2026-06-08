@@ -80,8 +80,8 @@ class ActiveProxyFooter extends ConsumerWidget with InfraLogger {
                   Semantics(
                     label: t.pages.proxies.activeProxy,
                     child: Text(
-                      // getRealOutboundTag(activeProxy),
-                      activeProxy.tagDisplay,
+                      // url-test группу "lowest" показываем как «Авто».
+                      activeProxy.tagDisplay.replaceAll('lowest', 'Авто'),
                       style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,

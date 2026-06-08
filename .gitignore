@@ -1,4 +1,7 @@
 
+# Keystore & secrets (never commit!)
+KEYSTORE_CREDENTIALS.txt
+
 # Miscellaneous
 *.class
 *.log

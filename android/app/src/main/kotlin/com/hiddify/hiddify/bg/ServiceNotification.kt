@@ -84,8 +84,8 @@ class ServiceNotification(private val status: MutableLiveData<Status>, private v
     // Кастомный вид уведомления со «Стоп» прямо в макете — чтобы кнопка была
     // видна в СВЁРНУТОМ уведомлении, без необходимости его разворачивать
     // (обычный addAction показывается только в развёрнутом виде).
-    private fun buildContentView(title: String, text: String): RemoteViews {
-        val rv = RemoteViews(service.packageName, R.layout.notification_vpn)
+    private fun buildContentView(layout: Int, title: String, text: String): RemoteViews {
+        val rv = RemoteViews(service.packageName, layout)
         rv.setTextViewText(R.id.notif_title, title.takeIf { it.isNotBlank() } ?: "VPN")
         rv.setTextViewText(R.id.notif_text, text)
         rv.setOnClickPendingIntent(R.id.notif_stop, stopPendingIntent)
@@ -123,9 +123,11 @@ class ServiceNotification(private val status: MutableLiveData<Status>, private v
             )
         }
         val title = profileName.takeIf { it.isNotBlank() } ?: "VPN"
+        val text = service.getString(contentTextId)
         service.startForeground(
             notificationId, notificationBuilder
-                .setCustomContentView(buildContentView(title, service.getString(contentTextId)))
+                .setCustomContentView(buildContentView(R.layout.notification_vpn, title, text))
+                .setCustomBigContentView(buildContentView(R.layout.notification_vpn_big, title, text))
                 .build()
         )
     }
@@ -152,11 +154,20 @@ class ServiceNotification(private val status: MutableLiveData<Status>, private v
     fun updateStatus(previous:SystemInfo,status: SystemInfo) {
         val uplink=status.uplink_total - previous.uplink_total
         val downlink=status.downlink_total - previous.downlink_total
-        val content = "${Libbox.formatBytes(uplink)}/s ↑\t${Libbox.formatBytes(downlink)}/s ↓ \n${status.current_outbound}"
+        val speed = "${Libbox.formatBytes(uplink)}/s ↑\t${Libbox.formatBytes(downlink)}/s ↓"
         val title = "${status.current_profile}"
+        // url-test группу "lowest" показываем как «Авто».
+        val outbound = status.current_outbound.replace("lowest", "Авто")
+        // Свёрнутое: только скорость (одна строка, без обрезки).
+        // Развёрнутое: скорость + текущий сервер.
         Application.notificationManager.notify(
                 notificationId,
-                notificationBuilder.setCustomContentView(buildContentView(title, content)).build()
+                notificationBuilder
+                        .setCustomContentView(buildContentView(R.layout.notification_vpn, title, speed))
+                        .setCustomBigContentView(
+                                buildContentView(R.layout.notification_vpn_big, title, "$speed\n$outbound")
+                        )
+                        .build()
         )
     }
 

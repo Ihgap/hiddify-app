@@ -64,12 +64,6 @@ class GeneralPage extends HookConsumerWidget {
             value: !ref.watch(Preferences.disableMemoryLimit),
             onChanged: (value) async => await ref.read(Preferences.disableMemoryLimit.notifier).update(!value),
           ),
-          ValuePreferenceWidget(
-            value: ref.watch(ConfigOptions.connectionTestUrl),
-            preferences: ref.watch(ConfigOptions.connectionTestUrl.notifier),
-            title: t.pages.settings.general.connectionTestUrl,
-            icon: Icons.link_rounded,
-          ),
           ListTile(
             title: Text(t.pages.settings.general.urlTestInterval),
             subtitle: Text(ref.watch(ConfigOptions.urlTestInterval).toApproximateTime(isRelativeToNow: false)),
