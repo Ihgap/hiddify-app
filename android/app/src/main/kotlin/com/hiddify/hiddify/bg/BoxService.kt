@@ -124,6 +124,24 @@ class BoxService(
                     stopService()
                 }
 
+                Action.SERVICE_PAUSE -> {
+                    try {
+                        Mobile.pause()
+                        notification.setPaused(true)
+                    } catch (e: Exception) {
+                        Log.w(TAG, "pause failed", e)
+                    }
+                }
+
+                Action.SERVICE_RESUME -> {
+                    try {
+                        Mobile.wake()
+                        notification.setPaused(false)
+                    } catch (e: Exception) {
+                        Log.w(TAG, "resume failed", e)
+                    }
+                }
+
                 PowerManager.ACTION_DEVICE_IDLE_MODE_CHANGED -> {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                         serviceUpdateIdleMode()
@@ -327,6 +345,8 @@ class BoxService(
         if (!receiverRegistered) {
             ContextCompat.registerReceiver(service, receiver, IntentFilter().apply {
                 addAction(Action.SERVICE_CLOSE)
+                addAction(Action.SERVICE_PAUSE)
+                addAction(Action.SERVICE_RESUME)
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                     addAction(PowerManager.ACTION_DEVICE_IDLE_MODE_CHANGED)
                 }

@@ -36,6 +36,11 @@ class ForeignOnlyToggle extends ConsumerWidget {
               enabled: true,
               name: _ruDirectRuleName,
               outbound: Outbound.direct,
+              // По домену (.ru/.рф) — чтобы РФ-сайты шли напрямую независимо от
+              // того, какой IP вернул geo-DNS (иначе yandex.ru резолвится в
+              // зарубежный IP и уходит в VPN). geoip-ru — для РФ-сервисов на
+              // зарубежных доменах, но российских IP.
+              domainSuffixes: ['.ru', '.рф'],
               ruleSets: ['geoip-ru'],
             ),
           );

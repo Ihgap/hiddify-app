@@ -50,7 +50,10 @@ import kotlinx.coroutines.CancellationException
 class ServiceNotification(private val status: MutableLiveData<Status>, private val service: Service) : BroadcastReceiver(){
     companion object {
         private const val notificationId = 1
-        private const val notificationChannel = "service"
+        // Новый id канала, чтобы новая важность (DEFAULT) применилась и на уже
+        // установленных устройствах (важность существующего канала Android менять
+        // не даёт).
+        private const val notificationChannel = "vpn-service"
         var coreClient: CoreClient?=null
         val flags =
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0
@@ -71,13 +74,31 @@ class ServiceNotification(private val status: MutableLiveData<Status>, private v
     private var receiverRegistered = false
 
 
-    // PendingIntent кнопки «Стоп» — та же, что раньше слала Action.SERVICE_CLOSE.
-    private val stopPendingIntent by lazy {
-        PendingIntent.getBroadcast(
-            service,
-            0,
-            Intent(Action.SERVICE_CLOSE).setPackage(Application.application.packageName),
-            flags
+    private fun broadcastIntent(action: String) = PendingIntent.getBroadcast(
+        service,
+        0,
+        Intent(action).setPackage(Application.application.packageName),
+        flags
+    )
+
+    private val stopPendingIntent by lazy { broadcastIntent(Action.SERVICE_CLOSE) }
+    private val pausePendingIntent by lazy { broadcastIntent(Action.SERVICE_PAUSE) }
+    private val resumePendingIntent by lazy { broadcastIntent(Action.SERVICE_RESUME) }
+
+    // Состояние «на паузе» и последний показанный текст — чтобы перерисовать
+    // уведомление при нажатии «Пауза»/«Возобновить».
+    private var paused = false
+    private var lastTitle = ""
+    private var lastText = ""
+
+    fun setPaused(value: Boolean) {
+        paused = value
+        Application.notificationManager.notify(
+            notificationId,
+            notificationBuilder
+                .setCustomContentView(buildContentView(R.layout.notification_vpn, lastTitle, lastText))
+                .setCustomBigContentView(buildContentView(R.layout.notification_vpn_big, lastTitle, lastText))
+                .build()
         )
     }
 
@@ -85,10 +106,15 @@ class ServiceNotification(private val status: MutableLiveData<Status>, private v
     // видна в СВЁРНУТОМ уведомлении, без необходимости его разворачивать
     // (обычный addAction показывается только в развёрнутом виде).
     private fun buildContentView(layout: Int, title: String, text: String): RemoteViews {
+        lastTitle = title
+        lastText = text
         val rv = RemoteViews(service.packageName, layout)
         rv.setTextViewText(R.id.notif_title, title.takeIf { it.isNotBlank() } ?: "VPN")
-        rv.setTextViewText(R.id.notif_text, text)
+        rv.setTextViewText(R.id.notif_text, if (paused) "Пауза" else text)
         rv.setOnClickPendingIntent(R.id.notif_stop, stopPendingIntent)
+        // Кнопка пауза/возобновить
+        rv.setTextViewText(R.id.notif_pause, if (paused) "Возобновить" else "Пауза")
+        rv.setOnClickPendingIntent(R.id.notif_pause, if (paused) resumePendingIntent else pausePendingIntent)
         return rv
     }
 
@@ -111,16 +137,23 @@ class ServiceNotification(private val status: MutableLiveData<Status>, private v
                                 flags
                         )
                 )
-                .setPriority(NotificationCompat.PRIORITY_LOW)
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
     }
 
     fun show(profileName: String, @StringRes contentTextId: Int) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            Application.notification.createNotificationChannel(
-                NotificationChannel(
-                    notificationChannel, "hiddify service", NotificationManager.IMPORTANCE_LOW
-                )
-            )
+            // IMPORTANCE_DEFAULT → уведомление в ВЕРХНЕЙ части шторки (а не в
+            // «Без звука», как при IMPORTANCE_LOW). Звук/вибрацию отключаем,
+            // чтобы постоянное уведомление не пищало.
+            val channel = NotificationChannel(
+                notificationChannel, "VPN", NotificationManager.IMPORTANCE_DEFAULT
+            ).apply {
+                setSound(null, null)
+                enableVibration(false)
+                enableLights(false)
+                setShowBadge(false)
+            }
+            Application.notification.createNotificationChannel(channel)
         }
         val title = profileName.takeIf { it.isNotBlank() } ?: "VPN"
         val text = service.getString(contentTextId)
