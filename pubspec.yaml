@@ -1,7 +1,7 @@
 name: hiddify
 description: Cross Platform Multi Protocol Proxy Frontend.
 publish_to: "none"
-version: 1.0.10+10010
+version: 1.0.11+10011
 
 environment:
   sdk: ^3.10.4
