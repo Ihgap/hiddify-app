@@ -30,21 +30,25 @@ class ForeignOnlyToggle extends ConsumerWidget {
       final notifier = ref.read(rulesNotifierProvider.notifier);
       final existing = ref.read(rulesNotifierProvider).where((r) => r.name == _ruDirectRuleName).toList();
       if (value) {
-        if (existing.isEmpty) {
-          await notifier.addRule(
-            Rule(
-              enabled: true,
-              name: _ruDirectRuleName,
-              outbound: Outbound.direct,
-              // По домену (.ru/.рф) — чтобы РФ-сайты шли напрямую независимо от
-              // того, какой IP вернул geo-DNS (иначе yandex.ru резолвится в
-              // зарубежный IP и уходит в VPN). geoip-ru — для РФ-сервисов на
-              // зарубежных доменах, но российских IP.
-              domainSuffixes: ['.ru', '.рф'],
-              ruleSets: ['geoip-ru'],
-            ),
-          );
+        // Сначала удаляем СТАРЫЕ версии правила (после обновления приложения
+        // оно может остаться от прежней сборки без доменных суффиксов), затем
+        // добавляем актуальное — так правило самообновляется.
+        for (final r in existing) {
+          await notifier.deleteRule(r.listOrder);
         }
+        await notifier.addRule(
+          Rule(
+            enabled: true,
+            name: _ruDirectRuleName,
+            outbound: Outbound.direct,
+            // По домену (.ru/.рф) — чтобы РФ-сайты шли напрямую независимо от
+            // того, какой IP вернул geo-DNS (иначе yandex.ru резолвится в
+            // зарубежный IP и уходит в VPN). geoip-ru — для РФ-сервисов на
+            // зарубежных доменах, но российских IP.
+            domainSuffixes: ['.ru', '.рф'],
+            ruleSets: ['geoip-ru'],
+          ),
+        );
       } else {
         for (final r in existing) {
           await notifier.deleteRule(r.listOrder);
