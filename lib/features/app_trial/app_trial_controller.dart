@@ -7,6 +7,7 @@ import 'package:hiddify/features/connection/notifier/connection_notifier.dart';
 import 'package:hiddify/features/profile/data/profile_data_mapper.dart';
 import 'package:hiddify/features/profile/data/profile_data_providers.dart';
 import 'package:hiddify/features/profile/model/profile_entity.dart';
+import 'package:hiddify/features/profile/model/profile_sort_enum.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 void _log(String msg) => debugPrint('APP_TRIAL: $msg');
@@ -90,12 +91,30 @@ final subscriptionSyncProvider = FutureProvider<AppTrialResult?>((ref) async {
       // новый профиль или миграция (после привязки сменился токен)
       final newProfile = (await dataSource.getByUrl(subUrl))?.toEntity();
       if (newProfile != null) {
-        await prefs.setString(_managedProfileKey, newProfile.id);
-        await repo.setAsActive(newProfile.id).run();
-        // удаляем старый управляемый профиль только после успешной замены
+        // Сначала удаляем старый профиль — чтобы при обрыве (invalidate между
+        // setString и deleteById) старый не оставался висеть «призраком».
         if (managed != null && managed.id != newProfile.id) {
           await repo.deleteById(managed.id, false).run();
-          _log('migrated profile ${managed.id} -> ${newProfile.id}');
+          _log('deleted old managed profile ${managed.id}');
+        }
+        await prefs.setString(_managedProfileKey, newProfile.id);
+        await repo.setAsActive(newProfile.id).run();
+        _log('migrated profile ${managed?.id} -> ${newProfile.id}');
+      }
+    }
+
+    // Чистим «призраки»: любые профили с именем приложения, кроме текущего
+    // управляемого (накопились из-за прерванных синков или старых версий кода).
+    final currentManagedId = prefs.getString(_managedProfileKey);
+    if (currentManagedId != null) {
+      final allProfiles = await dataSource
+          .watchAll(sort: ProfilesSort.lastUpdate, sortMode: SortMode.ascending)
+          .first;
+      for (final entry in allProfiles) {
+        if (entry.id != currentManagedId &&
+            entry.name.startsWith(Constants.appName)) {
+          await repo.deleteById(entry.id, false).run();
+          _log('cleaned up orphaned profile ${entry.id} (${entry.name})');
         }
       }
     }
