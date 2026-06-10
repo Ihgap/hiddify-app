@@ -350,6 +350,12 @@ class BoxService(
         GlobalScope.launch(Dispatchers.IO) {
             try {
                 withContext(Dispatchers.Main) { notification.setPaused(false) }
+                // Возобновление инициирует НАТИВ (Flutter не участвует), поэтому
+                // ядро должно стартовать само в startService(). После коннекта из
+                // приложения флаг стоит false (ядро поднимает Flutter по gRPC) —
+                // принудительно ставим true, иначе startService поднимет сервис,
+                // но не запустит ядро (VPN не возобновится).
+                Settings.startCoreAfterStartingService = true
                 startService()
             } catch (e: Exception) {
                 Log.w(TAG, "resume failed", e)
