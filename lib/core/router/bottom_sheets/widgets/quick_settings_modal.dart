@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:hiddify/core/localization/translations.dart';
-import 'package:hiddify/features/chain/overview/chain_quick_settings.dart';
 import 'package:hiddify/features/settings/data/config_option_repository.dart';
 import 'package:hiddify/singbox/model/singbox_config_enum.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -11,13 +10,22 @@ class QuickSettingsModal extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = ref.watch(translationsProvider).requireValue;
+    final theme = Theme.of(context);
 
     return SafeArea(
       child: SingleChildScrollView(
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+              child: Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: Text(t.pages.settings.inbound.serviceMode, style: theme.textTheme.titleMedium),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
               child: SegmentedButton(
                 showSelectedIcon: false,
                 segments: ServiceMode.choices
@@ -28,7 +36,6 @@ class QuickSettingsModal extends HookConsumerWidget {
                           padding: const EdgeInsets.symmetric(vertical: 8),
                           child: Text(e.presentShort(t), textAlign: TextAlign.center),
                         ),
-                        // tooltip: e.isExperimental ? t.settings.experimental : null,
                       ),
                     )
                     .toList(),
@@ -36,40 +43,6 @@ class QuickSettingsModal extends HookConsumerWidget {
                 onSelectionChanged: (newSet) => ref.read(ConfigOptions.serviceMode.notifier).update(newSet.first),
               ),
             ),
-            const Divider(height: 2, thickness: 2),
-            const ChainQuickSettings(),
-            // const Gap(12),
-            // ListTile(
-            //   leading: const Icon(Icons.cloud_rounded),
-            //   title: Text(ref.watch(ConfigOptions.warpDetourMode).presentExplain(t)),
-            //   onLongPress: () {
-            //     context.pop();
-            //     context.goNamed('warpOptions');
-            //   },
-            //   onTap: () async {
-            //     final value = ref.watch(ConfigOptions.enableWarp);
-            //     await ref.read(ConfigOptions.enableWarp.notifier).update(!value);
-            //   },
-            //   trailing: Switch.adaptive(
-            //     value: ref.watch(ConfigOptions.enableWarp),
-            //     onChanged: (value) async {
-            //       await ref.read(ConfigOptions.enableWarp.notifier).update(value);
-            //       // await ref.read(warpOptionNotifierProvider.notifier).genWarps();
-            //     },
-            //   ),
-            // ),
-            // ListTile(
-            //   leading: const Icon(Icons.content_cut_rounded),
-            //   title: Text(t.pages.settings.tlsTricks.title),
-            //   onTap: () {
-            //     context.pop();
-            //     context.goNamed('tlsTricks');
-            //   },
-            //   trailing: Switch.adaptive(
-            //     value: ref.watch(ConfigOptions.enableTlsFragment),
-            //     onChanged: ref.read(ConfigOptions.enableTlsFragment.notifier).update,
-            //   ),
-            // ),
           ],
         ),
       ),
