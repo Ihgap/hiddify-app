@@ -27,7 +27,7 @@ class SubscriptionBanner extends ConsumerWidget {
     final linked = result.linked;
     final expired = result.status == 'expired';
     final expires = result.expiresAt;
-    final daysLeft = expires != null ? (expires.difference(DateTime.now()).inHours / 24).ceil() : null;
+    final daysLeft = expires?.difference(DateTime.now()).inDays;
 
     final String title;
     final String actionLabel;
