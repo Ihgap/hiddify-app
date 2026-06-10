@@ -50,16 +50,6 @@ class FixBtns extends ConsumerWidget {
         ),
         const Gap(AddProfileModalConst.fixBtnsGap),
         FixBtn(
-          key: const ValueKey('add_manually_button'),
-          height: height,
-          title: t.common.manually,
-          icon: Icons.add,
-          onTap: () {
-            ref.read(addProfilePageNotifierProvider.notifier).goManual();
-          },
-        ),
-        const Gap(AddProfileModalConst.fixBtnsGap),
-        FixBtn(
           key: const ValueKey('add_from_telegram_button'),
           height: height,
           title: t.common.fromTelegram,
