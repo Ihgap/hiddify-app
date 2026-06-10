@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -17,12 +18,24 @@ part 'rules_notifier.g.dart';
 class RulesNotifier extends _$RulesNotifier with AppLogger {
   late File file;
 
+  // Устаревшее персистентное правило «только зарубежный трафик». Теперь оно
+  // приходит с сервера и подставляется в конфиг на лету (см. config_option_repository),
+  // поэтому в пользовательском списке его быть не должно. У тех, кто ставил старые
+  // сборки, оно осталось в route_rule.proto — вычищаем при загрузке.
+  static const _legacyForeignRuleName = 'РФ напрямую';
+
   @override
   List<Rule> build() {
     final directories = ref.watch(appDirectoriesProvider).requireValue;
     file = File('${directories.baseDir.path}/route_rule.proto');
     if (file.existsSync()) {
-      return RouteRule.fromBuffer(file.readAsBytesSync()).rules;
+      final loaded = RouteRule.fromBuffer(file.readAsBytesSync()).rules;
+      final cleaned = _updateListOrder(loaded.where((r) => r.name != _legacyForeignRuleName).toList());
+      // Если что-то вычистили — переписываем файл, чтобы правило не вернулось.
+      if (cleaned.length != loaded.length) {
+        unawaited(_writeRules(cleaned));
+      }
+      return cleaned;
     } else {
       return <Rule>[];
     }
@@ -168,6 +181,18 @@ class RulesNotifier extends _$RulesNotifier with AppLogger {
     final sortedRules = state..sort((a, b) => a.listOrder.compareTo(b.listOrder));
     final routeRules = RouteRule(rules: sortedRules);
     await file.writeAsBytes(routeRules.writeToBuffer());
+  }
+
+  // Записать произвольный список правил в файл (используется при чистке на старте).
+  Future<void> _writeRules(List<Rule> rules) async {
+    try {
+      if (!await file.exists()) {
+        await file.parent.create(recursive: true);
+      }
+      await file.writeAsBytes(RouteRule(rules: rules).writeToBuffer());
+    } catch (e, st) {
+      loggy.warning("error rewriting route rules file", e, st);
+    }
   }
 
   List<Rule> _updateListOrder(List<Rule> rules) {
