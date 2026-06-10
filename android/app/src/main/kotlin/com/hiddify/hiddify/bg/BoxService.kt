@@ -125,21 +125,11 @@ class BoxService(
                 }
 
                 Action.SERVICE_PAUSE -> {
-                    try {
-                        Mobile.pause()
-                        notification.setPaused(true)
-                    } catch (e: Exception) {
-                        Log.w(TAG, "pause failed", e)
-                    }
+                    GlobalScope.launch(Dispatchers.IO) { pauseService() }
                 }
 
                 Action.SERVICE_RESUME -> {
-                    try {
-                        Mobile.wake()
-                        notification.setPaused(false)
-                    } catch (e: Exception) {
-                        Log.w(TAG, "resume failed", e)
-                    }
+                    resumeService()
                 }
 
                 PowerManager.ACTION_DEVICE_IDLE_MODE_CHANGED -> {
@@ -157,6 +147,7 @@ class BoxService(
     private suspend fun startService() {
         try {
             status.postValue(Status.Starting)
+            setPausedMarker(false)
             Log.d(TAG, "starting service")
             withContext(Dispatchers.Main) {
                 notification.show(activeProfileName, R.string.status_starting)
@@ -281,6 +272,7 @@ class BoxService(
     private fun stopService() {
         if (status.value == Status.Stopped) return
         status.value = Status.Stopping
+        setPausedMarker(false)
         if (receiverRegistered) {
             service.unregisterReceiver(receiver)
             receiverRegistered = false
@@ -318,6 +310,50 @@ class BoxService(
                 service.stopSelf()
             }
             notification.close()
+        }
+    }
+
+    // Файл-маркер «на паузе» в общей baseDir (тот же путь, что и у Flutter:
+    // getApplicationSupportDirectory == filesDir). По нему приложение понимает,
+    // что VPN остановлен кнопкой «Пауза» (а не «Стоп») и рисует жёлтый статус.
+    private fun pausedMarkerFile() = File(Settings.baseDir, "paused.flag")
+
+    private fun setPausedMarker(value: Boolean) {
+        try {
+            val f = pausedMarkerFile()
+            if (value) f.writeText("1") else if (f.exists()) f.delete()
+        } catch (e: Exception) {
+            Log.w(TAG, "paused marker update failed", e)
+        }
+    }
+
+    // Реальная пауза: останавливаем ядро и снимаем TUN (трафик идёт напрямую,
+    // как без VPN), но НЕ убиваем foreground-сервис — уведомление остаётся живым
+    // с кнопкой «Возобновить». Возобновление поднимает туннель заново.
+    private fun pauseService() {
+        try {
+            setPausedMarker(true)
+            notification.setPaused(true)
+            val pfd = fileDescriptor
+            if (pfd != null) {
+                pfd.close()
+                fileDescriptor = null
+            }
+            Mobile.stop()
+        } catch (e: Exception) {
+            Log.w(TAG, "pause failed", e)
+        }
+    }
+
+    private fun resumeService() {
+        setPausedMarker(false)
+        GlobalScope.launch(Dispatchers.IO) {
+            try {
+                withContext(Dispatchers.Main) { notification.setPaused(false) }
+                startService()
+            } catch (e: Exception) {
+                Log.w(TAG, "resume failed", e)
+            }
         }
     }
 

@@ -93,6 +93,9 @@ class ServiceNotification(private val status: MutableLiveData<Status>, private v
 
     fun setPaused(value: Boolean) {
         paused = value
+        // На паузе ядро остановлено — поллинг GetSystemInfo всё равно отвалится,
+        // поэтому останавливаем его сами (иначе спамит ошибками раз в секунду).
+        if (value) stopListenSystemInfo()
         Application.notificationManager.notify(
             notificationId,
             notificationBuilder
@@ -207,7 +210,7 @@ class ServiceNotification(private val status: MutableLiveData<Status>, private v
     override fun onReceive(context: Context, intent: Intent) {
         when (intent.action) {
             Intent.ACTION_SCREEN_ON -> {
-                startListenSystemInfo()
+                if (!paused) startListenSystemInfo()
             }
 
             Intent.ACTION_SCREEN_OFF -> {
@@ -249,10 +252,11 @@ class ServiceNotification(private val status: MutableLiveData<Status>, private v
             } catch (e: CancellationException) {
                 // coroutine cancelled normally
                 Log.d("notification", "SystemInfo polling cancelled")
-                notification.cancel(notificationId)
+                // На паузе уведомление должно остаться (с кнопкой «Возобновить»).
+                if (!paused) notification.cancel(notificationId)
             } catch (e: Exception) {
                 Log.e("notification", "SystemInfo polling failed", e)
-                notification.cancel(notificationId)
+                if (!paused) notification.cancel(notificationId)
             }
         }
     }

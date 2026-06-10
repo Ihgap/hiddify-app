@@ -11,6 +11,7 @@ import 'package:hiddify/core/theme/theme_extensions.dart';
 import 'package:hiddify/core/widget/animated_text.dart';
 import 'package:hiddify/features/connection/model/connection_status.dart';
 import 'package:hiddify/features/connection/notifier/connection_notifier.dart';
+import 'package:hiddify/features/connection/notifier/pause_notifier.dart';
 import 'package:hiddify/features/profile/notifier/active_profile_notifier.dart';
 import 'package:hiddify/features/proxy/active/active_proxy_notifier.dart';
 import 'package:hiddify/features/settings/data/config_option_repository.dart';
@@ -28,6 +29,11 @@ class ConnectionButton extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final t = ref.watch(translationsProvider).requireValue;
     final connectionStatus = ref.watch(connectionNotifierProvider);
+    // VPN на «Паузе» (ядро остановлено кнопкой «Пауза» в уведомлении): кнопка
+    // жёлтая с подписью «Пауза», тап = обычное подключение (= возобновление,
+    // т.к. в этом состоянии ядро Disconnected).
+    final paused = ref.watch(pausedProvider);
+    const pausedColor = Color(0xFFE0A300);
     final activeProxy = ref.watch(activeProxyNotifierProvider);
     final delay = activeProxy.valueOrNull?.urlTestDelay ?? 0;
 
@@ -154,20 +160,25 @@ class ConnectionButton extends HookConsumerWidget {
         AsyncData(value: Connected()) || AsyncData(value: Disconnected()) || AsyncError() => true,
         _ => false,
       },
-      label: switch (connectionStatus) {
-        AsyncData(value: Connected()) when requiresReconnect == true => t.connection.reconnect,
-        AsyncData(value: Connected()) when delay <= 0 || delay >= 65000 => t.connection.connecting,
-        AsyncData(value: final status) => status.present(t),
-        _ => "",
-      },
-      buttonColor: switch (connectionStatus) {
-        AsyncData(value: Connected()) when requiresReconnect == true => Colors.teal,
-        AsyncData(value: Connected()) when delay <= 0 || delay >= 65000 => const Color.fromARGB(255, 185, 176, 103),
-        AsyncData(value: Connected()) => buttonTheme.connectedColor!,
-        AsyncData(value: Disconnected()) => Colors.white,
-        AsyncError() => Colors.red,
-        _ => Colors.white,
-      },
+      label: paused
+          ? "Пауза"
+          : switch (connectionStatus) {
+              AsyncData(value: Connected()) when requiresReconnect == true => t.connection.reconnect,
+              AsyncData(value: Connected()) when delay <= 0 || delay >= 65000 => t.connection.connecting,
+              AsyncData(value: final status) => status.present(t),
+              _ => "",
+            },
+      buttonColor: paused
+          ? pausedColor
+          : switch (connectionStatus) {
+              AsyncData(value: Connected()) when requiresReconnect == true => Colors.teal,
+              AsyncData(value: Connected()) when delay <= 0 || delay >= 65000 =>
+                const Color.fromARGB(255, 185, 176, 103),
+              AsyncData(value: Connected()) => buttonTheme.connectedColor!,
+              AsyncData(value: Disconnected()) => Colors.white,
+              AsyncError() => Colors.red,
+              _ => Colors.white,
+            },
       image: switch (connectionStatus) {
         AsyncData(value: Connected()) when requiresReconnect == true => Assets.images.disconnectNorouz,
         AsyncData(value: Connected()) => Assets.images.connectNorouz,
@@ -177,13 +188,16 @@ class ConnectionButton extends HookConsumerWidget {
         AsyncData(value: Connected()) => Assets.images.connectNorouz,
         _ => Assets.images.disconnectNorouz,
       },
-      newButtonColor: switch (connectionStatus) {
-        AsyncData(value: Connected()) when requiresReconnect == true => Colors.teal,
-        AsyncData(value: Connected()) when delay <= 0 || delay >= 65000 => const Color.fromARGB(255, 185, 176, 103),
-        AsyncData(value: Connected()) => buttonTheme.connectedColor!,
-        AsyncData(value: _) => buttonTheme.idleColor!,
-        _ => Colors.red,
-      },
+      newButtonColor: paused
+          ? pausedColor
+          : switch (connectionStatus) {
+              AsyncData(value: Connected()) when requiresReconnect == true => Colors.teal,
+              AsyncData(value: Connected()) when delay <= 0 || delay >= 65000 =>
+                const Color.fromARGB(255, 185, 176, 103),
+              AsyncData(value: Connected()) => buttonTheme.connectedColor!,
+              AsyncData(value: _) => buttonTheme.idleColor!,
+              _ => Colors.red,
+            },
       animated: switch (connectionStatus) {
         AsyncData(value: Connected()) when requiresReconnect == true => false,
         AsyncData(value: Connected()) when delay <= 0 || delay >= 65000 => false,
