@@ -93,17 +93,16 @@
             </intent-filter>
         </activity>
 
+        <!-- Тоггл VPN. CREATE_SHORTCUT убран, чтобы legacy-ярлык не дублировался
+             в списке виджетов лаунчера: остаётся один наш AppWidget. Активность
+             нужна для самого тоггла (её запускает виджет явным интентом). -->
         <activity
             android:name=".ShortcutActivity"
             android:excludeFromRecents="true"
-            android:exported="true"
+            android:exported="false"
             android:label="@string/quick_toggle"
             android:launchMode="singleTask"
-            android:taskAffinity="">
-            <intent-filter>
-                <action android:name="android.intent.action.CREATE_SHORTCUT" />
-            </intent-filter>
-        </activity>
+            android:taskAffinity="" />
 
         <service
             android:name=".bg.TileService"

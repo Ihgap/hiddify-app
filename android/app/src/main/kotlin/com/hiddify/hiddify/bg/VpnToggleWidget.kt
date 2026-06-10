@@ -34,12 +34,11 @@ class VpnToggleWidget : AppWidgetProvider() {
         private fun updateAppWidget(context: Context, mgr: AppWidgetManager, appWidgetId: Int) {
             val running = Settings.vpnRunning
             val views = RemoteViews(context.packageName, R.layout.widget_vpn_toggle)
-            views.setInt(
-                R.id.widget_root,
-                "setBackgroundResource",
-                if (running) R.drawable.widget_bg_on else R.drawable.widget_bg_off,
+            views.setImageViewResource(
+                R.id.widget_icon,
+                if (running) R.drawable.widget_power_on else R.drawable.widget_power_off,
             )
-            views.setContentDescription(R.id.widget_root, context.getString(R.string.quick_toggle))
+            views.setContentDescription(R.id.widget_root, context.getString(R.string.vpn_widget_label))
 
             val flags = PendingIntent.FLAG_UPDATE_CURRENT or
                 (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0)
