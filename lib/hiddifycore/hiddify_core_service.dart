@@ -116,13 +116,19 @@ class HiddifyCoreService with InfraLogger {
     return TaskEither(() async {
       loggy.debug("changing options");
       // latestOptions = options;
+      // Глобально блокируем QUIC (block-quic) — QUIC через туннель часто ломается
+      // (Яндекс/Google не открываются), браузеры из-за этого не всегда откатываются
+      // на TCP. Ядро добавит reject-правило для протокола QUIC → весь трафик идёт
+      // по TCP/HTTP2. Ключ дописываем в JSON, не трогая freezed-модель.
+      final settingsJson = options.toJson()..['block-quic'] = true;
+      final encoded = jsonEncode(settingsJson);
       try {
         final res = await core.fgClient.changeHiddifySettings(
-          ChangeHiddifySettingsRequest(hiddifySettingsJson: jsonEncode(options.toJson())),
+          ChangeHiddifySettingsRequest(hiddifySettingsJson: encoded),
         );
         if (res.messageType != MessageType.EMPTY) return left("${res.messageType} ${res.message}");
         await core.bgClient.changeHiddifySettings(
-          ChangeHiddifySettingsRequest(hiddifySettingsJson: jsonEncode(options.toJson())),
+          ChangeHiddifySettingsRequest(hiddifySettingsJson: encoded),
         );
       } on GrpcError catch (e) {
         if (e.code == StatusCode.unavailable) {
