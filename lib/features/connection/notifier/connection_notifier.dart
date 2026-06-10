@@ -22,8 +22,16 @@ part 'connection_notifier.g.dart';
 
 @Riverpod(keepAlive: true)
 class ConnectionNotifier extends _$ConnectionNotifier with AppLogger {
+  /// true только если пользователь явно нажал «Подключить» в этой сессии.
+  /// Сбрасывается при Disconnected, чтобы не стрелять haptic при открытии
+  /// приложения с уже работающим VPN (поток проходит Connecting→Connected
+  /// без действия пользователя).
+  bool _userInitiatedConnect = false;
+
   @override
   Stream<ConnectionStatus> build() async* {
+    _userInitiatedConnect = false;
+
     if (Platform.isIOS) {
       await _connectionRepo.setup().mapLeft((l) {
         loggy.error("error setting up connection repository", l);
@@ -32,8 +40,14 @@ class ConnectionNotifier extends _$ConnectionNotifier with AppLogger {
 
     listenSelf((previous, next) async {
       if (previous == next) return;
-      if (previous case AsyncData(:final value) when !value.isConnected) {
-        if (next case AsyncData(value: final Connected _)) {
+
+      if (next case AsyncData(value: final Disconnected _)) {
+        _userInitiatedConnect = false;
+      }
+
+      if (next case AsyncData(value: final Connected _)) {
+        if (_userInitiatedConnect) {
+          _userInitiatedConnect = false;
           await ref.read(hapticServiceProvider.notifier).heavyImpact();
 
           if (Platform.isAndroid && !ref.read(Preferences.storeReviewedByUser)) {
@@ -79,6 +93,7 @@ class ConnectionNotifier extends _$ConnectionNotifier with AppLogger {
     } else if (state case AsyncData(:final value)) {
       switch (value) {
         case Disconnected():
+          _userInitiatedConnect = true;
           await haptic.lightImpact();
           await ref.read(Preferences.startedByUser.notifier).update(true);
           await _connect();

@@ -32,6 +32,13 @@ class ConnectionButton extends HookConsumerWidget {
 
     final requiresReconnect = ref.watch(configOptionNotifierProvider).valueOrNull;
     final today = DateTime.now();
+
+    // Пока статус загружается (AsyncLoading) — не применяем scale/blur анимацию.
+    // Без этого: первый кадр рисуется с enabled=false (scale 88%, blur), потом
+    // статус приходит Connected и кнопка «всплывает» — выглядит как нажатие.
+    final hasResolved = useRef(false);
+    if (!connectionStatus.isLoading) hasResolved.value = true;
+    final isInitialLoad = !hasResolved.value;
     // final animationController = useAnimationController(
     //   duration: const Duration(seconds: 1),
     // )..repeat(reverse: true); // Ensure the animation loops indefinitely
@@ -185,6 +192,7 @@ class ConnectionButton extends HookConsumerWidget {
       },
       useImage: today.day >= 19 && today.day <= 23 && today.month == 3,
       secureLabel: secureLabel,
+      isInitialLoad: isInitialLoad,
     );
   }
 }
@@ -200,6 +208,7 @@ class _ConnectionButton extends StatelessWidget {
     required this.newButtonColor,
     required this.animated,
     required this.secureLabel,
+    required this.isInitialLoad,
   });
 
   final VoidCallback onTap;
@@ -209,10 +218,11 @@ class _ConnectionButton extends StatelessWidget {
   final AssetGenImage image;
   final bool useImage;
   final String secureLabel;
-
   final Color newButtonColor;
-
   final bool animated;
+  /// Пока true — не применяем blur/scale анимацию «неактивной» кнопки,
+  /// чтобы кнопка не «всплывала» при открытии приложения с уже включённым VPN.
+  final bool isInitialLoad;
 
   @override
   Widget build(BuildContext context) {
@@ -268,8 +278,8 @@ class _ConnectionButton extends StatelessWidget {
                   ),
                 ),
               ),
-            ).animate(target: enabled ? 0 : 1).blurXY(end: 1),
-          ).animate(target: enabled ? 0 : 1).scaleXY(end: .88, curve: Curves.easeIn),
+            ).animate(target: (!enabled && !isInitialLoad) ? 1 : 0).blurXY(end: 1),
+          ).animate(target: (!enabled && !isInitialLoad) ? 1 : 0).scaleXY(end: .88, curve: Curves.easeIn),
         ),
         const Gap(16),
         ExcludeSemantics(
