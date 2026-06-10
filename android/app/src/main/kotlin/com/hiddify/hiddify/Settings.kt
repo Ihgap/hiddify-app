@@ -90,6 +90,11 @@ object Settings {
         get() = preferences.getBoolean(SettingsKey.STARTED_BY_USER, false)
         set(value) = preferences.edit().putBoolean(SettingsKey.STARTED_BY_USER, value).apply()
 
+    // Кэш состояния VPN для домашнего виджета 1x1.
+    var vpnRunning: Boolean
+        get() = preferences.getBoolean(SettingsKey.VPN_RUNNING, false)
+        set(value) = preferences.edit().putBoolean(SettingsKey.VPN_RUNNING, value).apply()
+
     fun serviceClass(): Class<*> {
         return when (serviceMode) {
             ServiceMode.VPN -> VPNService::class.java

@@ -20,6 +20,12 @@ class ServiceBinder(private val status: MutableLiveData<Status>) : IService.Stub
             broadcast { callback ->
                 callback.onServiceStatusChanged(it.ordinal)
             }
+            // Кэшируем состояние и перерисовываем домашний виджет 1x1.
+            try {
+                com.hiddify.hiddify.Settings.vpnRunning = it == Status.Started
+                VpnToggleWidget.refresh(com.hiddify.hiddify.Application.application)
+            } catch (_: Exception) {
+            }
         }
     }
 

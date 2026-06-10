@@ -21,6 +21,9 @@ object SettingsKey {
     const val STARTED_BY_USER = "${KEY_PREFIX}started_by_user"
     const val CONFIG_OPTIONS = "config_options_json"
 
+    // Кэш текущего состояния VPN для домашнего виджета 1x1 (вкл/выкл).
+    const val VPN_RUNNING = "vpn_running"
+
     const val START_CORE_ON_STARTING_SERVICE = "${KEY_PREFIX}starting_core_on_starting_service"
 
     const val WORKING_DIR = "working_dir"
