@@ -140,64 +140,80 @@ class HiddifyCoreService with InfraLogger {
     return TaskEither(() async {
       statusController.add(currentState = const CoreStatus.starting());
       loggy.debug("starting");
-      final background = await core.setupBackground(path, name);
-      if (background != const CoreStatus.started()) {
-        statusController.add(currentState = const CoreStatus.stopped());
-        return left(background.getCoreAlert() ?? const ConnectionFailure.unexpected("failed to start core"));
-      }
-      if (!core.isSingleChannel()) {
-        await startListeningLogs("bg", core.bgClient);
-        await startListeningStatus("bg", core.bgClient);
-      }
-      // if (latestOptions != null) {
-      //   await core.bgClient.changeHiddifySettings(
-      //     ChangeHiddifySettingsRequest(
-      //       hiddifySettingsJson: jsonEncode(latestOptions!.toJson()),
-      //     ),
-      //   );
-      // }
-      // final content = await File(path).readAsString();
-      // loggy.debug("starting with content: $content");
-      try {
-        final res = await core.bgClient.start(
-          StartRequest(
-            configPath: path,
-            configName: name,
-            // configContent: content,
-            disableMemoryLimit: disableMemoryLimit,
-          ),
-        );
-        ref.read(coreRestartSignalProvider.notifier).restart();
-        if (res.messageType != MessageType.ALREADY_STARTED && res.messageType != MessageType.EMPTY) {
-          final alert = res.message.contains("denied") ? CoreAlert.requestVPNPermission : CoreAlert.startFailed;
-          currentState = CoreStatus.stopped(
-            alert: alert,
-            message: "failed to start core ${res.messageType} ${res.message}",
-          );
 
-          statusController.add(currentState);
+      // На первом подключении старт ядра нередко падает транзиентно: гонка
+      // холодного старта / выдачи VPN- и notification-разрешений приводит к тому,
+      // что gRPC-стрим ядра сбрасывается прямо во время старта (HTTP/2 GOAWAY и
+      // т.п.) → "failed to start background core", либо сервер/порт не успевает
+      // подняться. Такие сбои лечатся повторной попыткой. Не ретраим только то,
+      // что ретрай не починит: запрос разрешений и невалидный конфиг.
+      const maxAttempts = 3;
+      ConnectionFailure? lastFailure;
 
-          return left(
-            currentState.getCoreAlert() ??
-                ConnectionFailure.unexpected("failed to start core ${res.messageType} ${res.message}"),
-          );
+      for (var attempt = 1; attempt <= maxAttempts; attempt++) {
+        if (attempt > 1) {
+          loggy.info("retrying core start (attempt $attempt/$maxAttempts)");
+          await Future<void>.delayed(const Duration(milliseconds: 700));
         }
-      } on GrpcError catch (e) {
-        loggy.error("failed to start bg core: $e");
-        ref.read(coreRestartSignalProvider.notifier).restart();
-        if (e.code == StatusCode.unavailable) {
-          return left(const ConnectionFailure.unexpected("background core is not started yet!"));
-        }
-        // throw InvalidConfig(e.message);
-        // throw DioException.connectionError(requestOptions: RequestOptions(), reason: e.codeName, error: e);
 
-        // throw DioException(requestOptions: RequestOptions(), error: e);
-        return left(const ConnectionFailure.unexpected("failed to start background core"));
+        final background = await core.setupBackground(path, name);
+        if (background != const CoreStatus.started()) {
+          final failure = background.getCoreAlert() ?? const ConnectionFailure.unexpected("failed to start core");
+          // Запрос разрешений / битый конфиг — отдаём сразу, ретрай бессмыслен.
+          if (background is CoreStopped &&
+              (background.alert == CoreAlert.requestVPNPermission ||
+                  background.alert == CoreAlert.requestNotificationPermission ||
+                  background.alert == CoreAlert.emptyConfiguration)) {
+            statusController.add(currentState = const CoreStatus.stopped());
+            return left(failure);
+          }
+          // Иначе считаем транзиентным таймингом (сервер/порт не поднялся) → ретрай.
+          lastFailure = failure;
+          continue;
+        }
+
+        if (!core.isSingleChannel()) {
+          await startListeningLogs("bg", core.bgClient);
+          await startListeningStatus("bg", core.bgClient);
+        }
+
+        try {
+          final res = await core.bgClient.start(
+            StartRequest(
+              configPath: path,
+              configName: name,
+              disableMemoryLimit: disableMemoryLimit,
+            ),
+          );
+          ref.read(coreRestartSignalProvider.notifier).restart();
+          if (res.messageType != MessageType.ALREADY_STARTED && res.messageType != MessageType.EMPTY) {
+            final alert = res.message.contains("denied") ? CoreAlert.requestVPNPermission : CoreAlert.startFailed;
+            currentState = CoreStatus.stopped(
+              alert: alert,
+              message: "failed to start core ${res.messageType} ${res.message}",
+            );
+            statusController.add(currentState);
+            // Чистый ответ ядра с ошибкой — это уже вердикт, не ретраим.
+            return left(
+              currentState.getCoreAlert() ??
+                  ConnectionFailure.unexpected("failed to start core ${res.messageType} ${res.message}"),
+            );
+          }
+          // успех
+          return right(unit);
+        } on GrpcError catch (e) {
+          // Транспортный сбой gRPC во время старта — ретраим.
+          loggy.error("failed to start bg core (attempt $attempt/$maxAttempts): $e");
+          ref.read(coreRestartSignalProvider.notifier).restart();
+          lastFailure = e.code == StatusCode.unavailable
+              ? const ConnectionFailure.unexpected("background core is not started yet!")
+              : const ConnectionFailure.unexpected("failed to start background core");
+          continue;
+        }
       }
 
-      // if (res.messageType != MessageType.EMPTY) return left(res);
-
-      return right(unit);
+      statusController.add(currentState = const CoreStatus.stopped());
+      return left(lastFailure ?? const ConnectionFailure.unexpected("failed to start background core"));
     });
   }
 
