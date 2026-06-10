@@ -37,10 +37,6 @@
             android:name="flutter_deeplinking_enabled"
             android:value="true" />
 
-        <meta-data
-            android:name="android.app.shortcuts"
-            android:resource="@xml/shortcuts" />
-
         <activity
             android:name=".MainActivity"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
