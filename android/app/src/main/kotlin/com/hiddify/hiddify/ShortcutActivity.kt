@@ -53,7 +53,14 @@ class ShortcutActivity : Activity(), ServiceConnection.Callback {
     override fun onServiceStatusChanged(status: Status) {
         when (status) {
             Status.Started -> BoxService.stop()
-            Status.Stopped -> BoxService.start()
+            Status.Stopped -> {
+                // Старт инициирует НАТИВ (виджет/ярлык), Flutter не участвует —
+                // значит ядро должно стартовать само в startService(). Без этого
+                // флага поднимется только сервис и уведомление, а туннель нет
+                // (баг «виджет не включает VPN, но в шторке инфа появляется»).
+                Settings.startCoreAfterStartingService = true
+                BoxService.start()
+            }
             else -> {}
         }
         finish()
