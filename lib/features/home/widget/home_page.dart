@@ -49,15 +49,8 @@ class HomePage extends HookConsumerWidget {
           ),
         ),
         actions: [
-          Semantics(
-            key: const ValueKey("quick_settings_button"),
-            label: t.pages.settings.inbound.serviceMode,
-            child: IconButton(
-              icon: Icon(Icons.tune_rounded, color: theme.colorScheme.primary),
-              tooltip: t.pages.settings.inbound.serviceMode,
-              onPressed: () => ref.read(bottomSheetsNotifierProvider.notifier).showQuickSettings(),
-            ),
-          ),
+          // Переключатель VPN/Прокси убран с главного экрана (остаётся в
+          // Настройки → Inbound → Service mode).
           Semantics(
             key: const ValueKey("profile_add_button"),
             label: t.pages.profiles.add,
