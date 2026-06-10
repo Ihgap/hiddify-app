@@ -1,14 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:gap/gap.dart';
 import 'package:hiddify/core/router/go_router/helper/active_breakpoint_notifier.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 class FixBtn extends ConsumerWidget {
-  const FixBtn({super.key, required this.height, required this.title, required this.icon, required this.onTap});
+  const FixBtn({
+    super.key,
+    required this.height,
+    required this.title,
+    required this.onTap,
+    this.icon,
+    this.faIcon,
+  }) : assert(icon != null || faIcon != null, 'Provide icon or faIcon');
 
   final double height;
   final String title;
-  final IconData icon;
+  final IconData? icon;
+  final IconData? faIcon;
   final GestureTapCallback onTap;
 
   @override
@@ -17,6 +26,7 @@ class FixBtn extends ConsumerWidget {
     final isMobile = Breakpoint(context).isMobile();
     final color = theme.colorScheme.primary;
     final borderRadius = BorderRadius.circular(18);
+    final iconSize = isMobile ? 32.0 : 40.0;
 
     return Expanded(
       child: InkWell(
@@ -33,7 +43,10 @@ class FixBtn extends ConsumerWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: isMobile ? 32 : 40, color: color),
+              if (faIcon != null)
+                FaIcon(faIcon, size: iconSize, color: color)
+              else
+                Icon(icon, size: iconSize, color: color),
               Gap(isMobile ? 4 : 8),
               Text(
                 title,

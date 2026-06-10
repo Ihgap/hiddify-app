@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:gap/gap.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hiddify/core/localization/translations.dart';
 import 'package:hiddify/core/model/constants.dart';
 import 'package:hiddify/core/router/dialog/dialog_notifier.dart';
+import 'package:hiddify/features/app_trial/app_trial_controller.dart';
 import 'package:hiddify/features/profile/add/widgets/widgets.dart';
 import 'package:hiddify/features/profile/notifier/profile_notifier.dart';
 import 'package:hiddify/utils/utils.dart';
@@ -53,6 +56,17 @@ class FixBtns extends ConsumerWidget {
           icon: Icons.add,
           onTap: () {
             ref.read(addProfilePageNotifierProvider.notifier).goManual();
+          },
+        ),
+        const Gap(AddProfileModalConst.fixBtnsGap),
+        FixBtn(
+          key: const ValueKey('add_from_telegram_button'),
+          height: height,
+          title: t.common.fromTelegram,
+          faIcon: FontAwesomeIcons.telegram,
+          onTap: () {
+            if (context.canPop()) context.pop();
+            ref.invalidate(subscriptionSyncProvider);
           },
         ),
         const Gap(AddProfileModalConst.fixBtnsGap),

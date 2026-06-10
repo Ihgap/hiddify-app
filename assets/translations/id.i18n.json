@@ -1,4 +1,4 @@
-{
+﻿{
   "common": {
     "appTitle": "TuTu4kA VPN",
     "start": "Mulai",
@@ -21,6 +21,7 @@
     "add": "Tambah",
     "clipboard": "Papan klip",
     "addToClipboard": "Tambah ke papan klip",
+    "fromTelegram": "From Telegram",
     "scanQr": "Pindai QR",
     "free": "Gratis",
     "warp": "WARP",
@@ -94,7 +95,7 @@
   "intro": {
     "banner": "Semua yang Anda butuhkan untuk internet tanpa batasan",
     "termsAndPolicyCaution(rich)": "Dengan melanjutkan, Anda menyetujui ${tap(@:pages.about.termsAndConditions)}",
-    "info(rich)": "Dibuat dengan ❤️ oleh Hiddify - ${tap_source(Sumber Terbuka)} (${tap_license(Lisensi)})"
+    "info(rich)": "Dibuat dengan вќ¤пёЏ oleh Hiddify - ${tap_source(Sumber Terbuka)} (${tap_license(Lisensi)})"
   },
   "pages": {
     "home": {

@@ -1,8 +1,8 @@
-{
+﻿{
   "common": {
     "appTitle": "TuTu4kA VPN",
-    "start": "Começar",
-    "version": "Versão",
+    "start": "ComeГ§ar",
+    "version": "VersГЈo",
     "ok": "OK",
     "cancel": "Cancelar",
     "kContinue": "Continuar",
@@ -14,15 +14,16 @@
     "resume": "Retomar",
     "clear": "Limpar",
     "close": "Fechar",
-    "auto": "Automático",
+    "auto": "AutomГЎtico",
     "manually": "Manualmente",
     "name": "Nome",
     "url": "URL",
     "add": "Adicionar",
-    "clipboard": "Área de transferência",
-    "addToClipboard": "Adicionar à área de transferência",
+    "clipboard": "ГЃrea de transferГЄncia",
+    "addToClipboard": "Adicionar Г  ГЎrea de transferГЄncia",
+    "fromTelegram": "From Telegram",
     "scanQr": "Escanear QR",
-    "free": "Grátis",
+    "free": "GrГЎtis",
     "warp": "WARP",
     "fragment": "Fragmento",
     "help": "Ajuda",
@@ -37,11 +38,11 @@
     "later": "Mais tarde",
     "ignore": "Ignorar",
     "quit": "Sair",
-    "notSet": "Não definido",
+    "notSet": "NГЈo definido",
     "hide": "Ocultar",
     "exit": "Sair",
     "reset": "Redefinir",
-    "done": "Concluído",
+    "done": "ConcluГ­do",
     "decline": "Recusar",
     "agree": "Aceitar",
     "empty": "Vazio",
@@ -53,7 +54,7 @@
     "disable": "Desativar",
     "psiphon": "Psiphon",
     "profile": "Perfil",
-    "configuration": "Configuração",
+    "configuration": "ConfiguraГ§ГЈo",
     "interval": {
       "day": {
         "zero": "",
@@ -68,13 +69,13 @@
     },
     "msg": {
       "permission": {
-        "denied": "Permissão negada"
+        "denied": "PermissГЈo negada"
       },
       "export": {
         "clipboard": {
-          "success": "Adicionado à área de transferência com sucesso",
-          "failure": "Falha ao copiar para a área de transferência",
-          "contentTooLarge": "Conteúdo muito grande. Use a exportação para arquivo"
+          "success": "Adicionado Г  ГЎrea de transferГЄncia com sucesso",
+          "failure": "Falha ao copiar para a ГЎrea de transferГЄncia",
+          "contentTooLarge": "ConteГєdo muito grande. Use a exportaГ§ГЈo para arquivo"
         },
         "file": {
           "success": "Arquivo JSON criado com sucesso",
@@ -82,47 +83,47 @@
         }
       },
       "import": {
-        "confirm": "Confirmar importação",
+        "confirm": "Confirmar importaГ§ГЈo",
         "success": "Importado com sucesso",
         "failure": "Falha ao importar"
       },
       "autoSave": {
-        "success": "Alterações salvas automaticamente com sucesso"
+        "success": "AlteraГ§Гµes salvas automaticamente com sucesso"
       }
     }
   },
   "intro": {
-    "banner": "Tudo o que você precisa para uma internet sem restrições",
-    "termsAndPolicyCaution(rich)": "Ao continuar, você concorda com os ${tap(@:pages.about.termsAndConditions)}",
-    "info(rich)": "Feito com ❤️ por Hiddify - ${tap_source(Código Aberto)} (${tap_license(Licença)})"
+    "banner": "Tudo o que vocГЄ precisa para uma internet sem restriГ§Гµes",
+    "termsAndPolicyCaution(rich)": "Ao continuar, vocГЄ concorda com os ${tap(@:pages.about.termsAndConditions)}",
+    "info(rich)": "Feito com вќ¤пёЏ por Hiddify - ${tap_source(CГіdigo Aberto)} (${tap_license(LicenГ§a)})"
   },
   "pages": {
     "home": {
-      "title": "Início",
-      "quickSettings": "Opções de configurações rápidas"
+      "title": "InГ­cio",
+      "quickSettings": "OpГ§Гµes de configuraГ§Гµes rГЎpidas"
     },
     "proxies": {
       "title": "Proxies",
       "sort": "Ordenar proxies",
-      "testDelay": "Testar latência",
-      "empty": "Nenhum proxy disponível",
+      "testDelay": "Testar latГЄncia",
+      "empty": "Nenhum proxy disponГ­vel",
       "activeProxy": "Proxy ativo",
       "unknownIp": "IP desconhecido",
       "sortOptions": {
-        "unsorted": "Padrão",
+        "unsorted": "PadrГЈo",
         "name": "Alfabeticamente",
-        "delay": "Por latência",
+        "delay": "Por latГЄncia",
         "usage": "Por uso"
       },
       "ipInfo": {
-        "address": "Endereço de IP",
-        "country": "País",
-        "organization": "Organização"
+        "address": "EndereГ§o de IP",
+        "country": "PaГ­s",
+        "organization": "OrganizaГ§ГЈo"
       },
       "delay": {
-        "result": "Latência: ${delay}ms",
-        "timeout": "Tempo limite do teste de latência esgotado",
-        "testing": "Latência: testando..."
+        "result": "LatГЄncia: ${delay}ms",
+        "timeout": "Tempo limite do teste de latГЄncia esgotado",
+        "testing": "LatГЄncia: testando..."
       }
     },
     "profiles": {
@@ -133,19 +134,19 @@
       "activeProfileName": "Nome do perfil ativo: \"${name}\".",
       "nonActiveProfileName": "Selecionar \"${name}\" como perfil ativo",
       "freeSubNotFound": "Nenhuma assinatura gratuita encontrada",
-      "freeSubNotFoundForRegion": "Nenhuma assinatura gratuita encontrada para a região \"${region}\"",
+      "freeSubNotFoundForRegion": "Nenhuma assinatura gratuita encontrada para a regiГЈo \"${region}\"",
       "failedToLoad": "Falha ao carregar",
       "updateSubscriptions": "Atualizar assinaturas",
       "share": {
-        "urlToClipboard": "URL para a área de transferência",
+        "urlToClipboard": "URL para a ГЎrea de transferГЄncia",
         "showUrlQr": "Mostrar QR code da URL",
-        "jsonToClipboard": "JSON para a área de transferência"
+        "jsonToClipboard": "JSON para a ГЎrea de transferГЄncia"
       },
       "msg": {
         "save": {
           "success": "Perfil salvo com sucesso"
         },
-        "invalidUrl": "URL inválida",
+        "invalidUrl": "URL invГЎlida",
         "add": {
           "failure": "Falha ao adicionar perfil"
         },
@@ -156,124 +157,124 @@
           "failureNamed": "Falha ao atualizar \"${name}\""
         },
         "delete": {
-          "success": "Perfil excluído com sucesso"
+          "success": "Perfil excluГ­do com sucesso"
         }
       }
     },
     "profileDetails": {
       "title": "Perfil",
-      "lastUpdate": "Última atualização",
+      "lastUpdate": "Гљltima atualizaГ§ГЈo",
       "form": {
         "nameHint": "Nome do perfil",
-        "emptyName": "O nome é obrigatório",
-        "invalidUrl": "URL inválida",
-        "urlHint": "URL de configuração completa",
-        "disableAutoUpdate": "Desativar atualização automática",
-        "autoUpdateInterval": "Intervalo de atualização automática",
+        "emptyName": "O nome Г© obrigatГіrio",
+        "invalidUrl": "URL invГЎlida",
+        "urlHint": "URL de configuraГ§ГЈo completa",
+        "disableAutoUpdate": "Desativar atualizaГ§ГЈo automГЎtica",
+        "autoUpdateInterval": "Intervalo de atualizaГ§ГЈo automГЎtica",
         "loading": "Adicionando perfil..."
       }
     },
     "logs": {
       "title": "Registros",
-      "shareCoreLogs": "Compartilhar registros do núcleo",
+      "shareCoreLogs": "Compartilhar registros do nГєcleo",
       "shareAppLogs": "Compartilhar registros do aplicativo"
     },
     "about": {
       "title": "Sobre",
-      "notAvailableMsg": "Você já está usando a versão mais recente",
-      "checkForUpdate": "Verificar atualizações",
-      "openWorkingDir": "Abrir diretório de trabalho",
-      "sourceCode": "Código-fonte",
+      "notAvailableMsg": "VocГЄ jГЎ estГЎ usando a versГЈo mais recente",
+      "checkForUpdate": "Verificar atualizaГ§Гµes",
+      "openWorkingDir": "Abrir diretГіrio de trabalho",
+      "sourceCode": "CГіdigo-fonte",
       "telegramChannel": "Canal do Telegram",
-      "termsAndConditions": "Termos e Condições",
-      "privacyPolicy": "Política de Privacidade"
+      "termsAndConditions": "Termos e CondiГ§Гµes",
+      "privacyPolicy": "PolГ­tica de Privacidade"
     },
     "settings": {
-      "title": "Configurações",
+      "title": "ConfiguraГ§Гµes",
       "resetTunnel": "Redefinir perfil de VPN",
       "options": {
         "import": {
-          "clipboard": "Importar opções da área de transferência",
-          "file": "Importar opções de um arquivo"
+          "clipboard": "Importar opГ§Гµes da ГЎrea de transferГЄncia",
+          "file": "Importar opГ§Гµes de um arquivo"
         },
         "export": {
-          "anonymousToClipboard": "Copiar opções anônimas para a área de transferência",
-          "anonymousToFile": "Exportar opções anônimas para um arquivo",
-          "allToClipboard": "Copiar todas as opções para a área de transferência",
-          "allToFile": "Exportar todas as opções para um arquivo"
+          "anonymousToClipboard": "Copiar opГ§Гµes anГґnimas para a ГЎrea de transferГЄncia",
+          "anonymousToFile": "Exportar opГ§Гµes anГґnimas para um arquivo",
+          "allToClipboard": "Copiar todas as opГ§Гµes para a ГЎrea de transferГЄncia",
+          "allToFile": "Exportar todas as opГ§Гµes para um arquivo"
         },
-        "reset": "Redefinir opções"
+        "reset": "Redefinir opГ§Гµes"
       },
       "general": {
         "title": "Geral",
         "locale": "Idioma",
         "themeMode": "Tema",
         "themeModes": {
-          "system": "Padrão do sistema",
+          "system": "PadrГЈo do sistema",
           "dark": "Modo escuro",
           "light": "Modo claro",
           "black": "Modo preto"
         },
-        "enableAnalytics": "Ativar análise de dados",
-        "enableAnalyticsMsg": "Permitir a coleta de dados de análise e relatórios de falhas para melhorar o aplicativo",
-        "autoIpCheck": "Verificar IP da conexão automaticamente",
-        "dynamicNotification": "Exibir velocidade na notificação",
-        "hapticFeedback": "Feedback tátil",
-        "actionAtClosing": "Ação ao fechar",
+        "enableAnalytics": "Ativar anГЎlise de dados",
+        "enableAnalyticsMsg": "Permitir a coleta de dados de anГЎlise e relatГіrios de falhas para melhorar o aplicativo",
+        "autoIpCheck": "Verificar IP da conexГЈo automaticamente",
+        "dynamicNotification": "Exibir velocidade na notificaГ§ГЈo",
+        "hapticFeedback": "Feedback tГЎtil",
+        "actionAtClosing": "AГ§ГЈo ao fechar",
         "autoStart": "Iniciar com o sistema",
         "silentStart": "Iniciar minimizado",
-        "ignoreBatteryOptimizations": "Desativar otimização de bateria",
-        "ignoreBatteryOptimizationsMsg": "Remover restrições para um desempenho ideal da VPN",
-        "memoryLimit": "Limite de memória",
-        "memoryLimitMsg": "Ative se estiver enfrentando erros de falta de memória ou travamentos frequentes do aplicativo",
-        "debugMode": "Modo de depuração",
-        "debugModeMsg": "Reinicie o aplicativo para aplicar esta alteração",
-        "logLevel": "Nível de registro",
-        "connectionTestUrl": "URL de teste de conexão",
+        "ignoreBatteryOptimizations": "Desativar otimizaГ§ГЈo de bateria",
+        "ignoreBatteryOptimizationsMsg": "Remover restriГ§Гµes para um desempenho ideal da VPN",
+        "memoryLimit": "Limite de memГіria",
+        "memoryLimitMsg": "Ative se estiver enfrentando erros de falta de memГіria ou travamentos frequentes do aplicativo",
+        "debugMode": "Modo de depuraГ§ГЈo",
+        "debugModeMsg": "Reinicie o aplicativo para aplicar esta alteraГ§ГЈo",
+        "logLevel": "NГ­vel de registro",
+        "connectionTestUrl": "URL de teste de conexГЈo",
         "urlTestInterval": "Intervalo de teste de URL",
         "clashApiPort": "Porta da API do Clash",
-        "useXrayCoreWhenPossible": "Usar xray-core quando possível",
-        "useXrayCoreWhenPossibleMsg": "Use o xray-core ao analisar links de assinatura. Você precisa reimportar o link para ativar esta opção"
+        "useXrayCoreWhenPossible": "Usar xray-core quando possГ­vel",
+        "useXrayCoreWhenPossibleMsg": "Use o xray-core ao analisar links de assinatura. VocГЄ precisa reimportar o link para ativar esta opГ§ГЈo"
       },
       "routing": {
         "title": "Roteamento",
         "routeRule": {
-          "empty": "Nenhuma regra adicionada ainda\n\nToque no botão + para criar uma nova regra ou escolha a partir de regras predefinidas",
+          "empty": "Nenhuma regra adicionada ainda\n\nToque no botГЈo + para criar uma nova regra ou escolha a partir de regras predefinidas",
           "delete": "Excluir regra",
           "create": "Criar nova regra",
           "options": {
             "import": {
-              "clipboard": "Importar regras da área de transferência",
+              "clipboard": "Importar regras da ГЎrea de transferГЄncia",
               "file": "Importar regras de um arquivo"
             },
             "export": {
-              "clipboard": "Copiar regras para a área de transferência",
+              "clipboard": "Copiar regras para a ГЎrea de transferГЄncia",
               "file": "Salvar regras em um arquivo"
             },
             "reset": "Redefinir regras"
           },
           "rule": {
             "title": "Regra",
-            "onlyTunMode": "Disponível apenas no modo TUN",
-            "notAvailabeInThisPlatform": "Não disponível nesta plataforma",
-            "canNotBeEmpty": "Não pode estar vazio",
+            "onlyTunMode": "DisponГ­vel apenas no modo TUN",
+            "notAvailabeInThisPlatform": "NГЈo disponГ­vel nesta plataforma",
+            "canNotBeEmpty": "NГЈo pode estar vazio",
             "validUrlEx": "https://example.com",
-            "validUrl": "\"URL\" válido como\n@:pages.settings.routing.routeRule.rule.validUrlEx",
+            "validUrl": "\"URL\" vГЎlido como\n@:pages.settings.routing.routeRule.rule.validUrlEx",
             "validProcessNameEx": "Chrome.exe ou google chrome ou chrome",
-            "validProcessName": "\"Nome do Processo\" válido como\n@:pages.settings.routing.routeRule.rule.validProcessNameEx",
+            "validProcessName": "\"Nome do Processo\" vГЎlido como\n@:pages.settings.routing.routeRule.rule.validProcessNameEx",
             "validProcessPathEx": "C:\\Pro...\\chrome.exe\n/App.../Google Chrome\n/usr/lib.../chrome",
-            "validProcessPath": "\"Caminho do Processo\" válido como\n@:pages.settings.routing.routeRule.rule.validProcessPathEx",
+            "validProcessPath": "\"Caminho do Processo\" vГЎlido como\n@:pages.settings.routing.routeRule.rule.validProcessPathEx",
             "validPortRangeEx": "80 ou 1-65000",
-            "validPortRange": "\"Porta\" ou \"Intervalo de Portas\" válido como\n@:pages.settings.routing.routeRule.rule.validPortRangeEx",
+            "validPortRange": "\"Porta\" ou \"Intervalo de Portas\" vГЎlido como\n@:pages.settings.routing.routeRule.rule.validPortRangeEx",
             "validIpCidrEx": "8.8.8.8 ou 10.0.0.0/24",
-            "validIpCidr": "IP CIDR válido como\n@:pages.settings.routing.routeRule.rule.validIpCidrEx",
+            "validIpCidr": "IP CIDR vГЎlido como\n@:pages.settings.routing.routeRule.rule.validIpCidrEx",
             "validDomainEx": "Google.com ou dl.google.com",
-            "validDomain": "\"Domínio\" válido como\n@:pages.settings.routing.routeRule.rule.validDomainEx",
+            "validDomain": "\"DomГ­nio\" vГЎlido como\n@:pages.settings.routing.routeRule.rule.validDomainEx",
             "validDomainSuffixEx": ".com ou .ir",
-            "validDomainSuffix": "\"Sufixo de Domínio\" válido como\n@:pages.settings.routing.routeRule.rule.validDomainSuffixEx",
+            "validDomainSuffix": "\"Sufixo de DomГ­nio\" vГЎlido como\n@:pages.settings.routing.routeRule.rule.validDomainSuffixEx",
             "tileTitle(map)": {
               "name": "Nome",
-              "outbound": "Saída se corresponder",
+              "outbound": "SaГ­da se corresponder",
               "rule_set": "URL do conjunto de regras",
               "package_name": "Nomes dos pacotes",
               "process_name": "Nomes dos processos",
@@ -284,10 +285,10 @@
               "protocol": "Protocolo",
               "ip_cidr": "IP CIDR de destino",
               "source_ip_cidr": "IP CIDR de origem",
-              "domain": "Domínio",
-              "domain_suffixe": "Sufixo de domínio",
-              "domain_keyword": "Palavra-chave de domínio",
-              "domain_regex": "Expressão regular de domínio"
+              "domain": "DomГ­nio",
+              "domain_suffixe": "Sufixo de domГ­nio",
+              "domain_keyword": "Palavra-chave de domГ­nio",
+              "domain_regex": "ExpressГЈo regular de domГ­nio"
             },
             "outbound(map)": {
               "proxy": "Proxy",
@@ -314,24 +315,24 @@
             "addNew": "Adicionar novo valor",
             "update": "Atualizar valor",
             "clearList": "Limpar lista",
-            "clearListMsg": "Todos os itens foram excluídos"
+            "clearListMsg": "Todos os itens foram excluГ­dos"
           }
         },
         "generalOptions": {
-          "title": "Opções gerais de rota",
-          "region": "Região",
+          "title": "OpГ§Гµes gerais de rota",
+          "region": "RegiГЈo",
           "regions": {
-            "ir": "Irã (ir)",
+            "ir": "IrГЈ (ir)",
             "cn": "China (cn)",
-            "ru": "Rússia (ru)",
-            "af": "Afeganistão (af)",
-            "id": "Indonésia (id)",
+            "ru": "RГєssia (ru)",
+            "af": "AfeganistГЈo (af)",
+            "id": "IndonГ©sia (id)",
             "tr": "Turquia (tr)",
             "br": "Brasil (br)",
             "other": "Outro"
           },
           "balancerStrategy": {
-            "title": "Estratégia de Balancer",
+            "title": "EstratГ©gia de Balancer",
             "roundRobin": "Round robin",
             "consistentHash": "Consistent hash",
             "stickySession": "Sticky session"
@@ -349,16 +350,16 @@
             "hideSysApps": "Ocultar aplicativos do sistema",
             "options": {
               "import": {
-                "clipboard": "Importar seleção da área de transferência",
-                "file": "Importar seleção de um arquivo",
-                "msg": "A importação substituirá suas seleções atuais. Tem certeza de que deseja continuar?"
+                "clipboard": "Importar seleГ§ГЈo da ГЎrea de transferГЄncia",
+                "file": "Importar seleГ§ГЈo de um arquivo",
+                "msg": "A importaГ§ГЈo substituirГЎ suas seleГ§Гµes atuais. Tem certeza de que deseja continuar?"
               },
               "export": {
-                "clipboard": "Copiar seleção para a área de transferência",
-                "file": "Exportar seleção para um arquivo"
+                "clipboard": "Copiar seleГ§ГЈo para a ГЎrea de transferГЄncia",
+                "file": "Exportar seleГ§ГЈo para um arquivo"
               },
               "shareToAll": "Compartilhar com todos",
-              "clearAllSelections": "Limpar todas as seleções"
+              "clearAllSelections": "Limpar todas as seleГ§Гµes"
             },
             "modes": {
               "all": "Todos",
@@ -366,22 +367,22 @@
               "bypass": "Ignorar",
               "allMsg": "Usar proxy para todos os aplicativos",
               "proxyMsg": "Usar proxy apenas para aplicativos selecionados",
-              "bypassMsg": "Não usar proxy para aplicativos selecionados"
+              "bypassMsg": "NГЈo usar proxy para aplicativos selecionados"
             },
             "autoSelection": {
-              "title": "Seleção automática",
+              "title": "SeleГ§ГЈo automГЎtica",
               "performNow": "Executar agora",
-              "resetToDefault": "Redefinir para o padrão",
-              "autoUpdateInterval": "Intervalo de atualização automática",
+              "resetToDefault": "Redefinir para o padrГЈo",
+              "autoUpdateInterval": "Intervalo de atualizaГ§ГЈo automГЎtica",
               "toast": {
-                "success": "Seleção automática de aplicativos concluída com sucesso",
-                "failure": "Falha na seleção automática",
-                "regionNotFound": "Seleção automática não encontrada para a região \"${region}\"",
-                "alreadyInAuto": "Suas seleções já estão na lista automática"
+                "success": "SeleГ§ГЈo automГЎtica de aplicativos concluГ­da com sucesso",
+                "failure": "Falha na seleГ§ГЈo automГЎtica",
+                "regionNotFound": "SeleГ§ГЈo automГЎtica nГЈo encontrada para a regiГЈo \"${region}\"",
+                "alreadyInAuto": "Suas seleГ§Гµes jГЎ estГЈo na lista automГЎtica"
               },
               "dialog": {
-                "title": "Seleção automática de aplicativos",
-                "msg": "A função de seleção automática para o proxy por aplicativo foi desativada devido à mudança de região para \"${region}\""
+                "title": "SeleГ§ГЈo automГЎtica de aplicativos",
+                "msg": "A funГ§ГЈo de seleГ§ГЈo automГЎtica para o proxy por aplicativo foi desativada devido Г  mudanГ§a de regiГЈo para \"${region}\""
               }
             }
           }
@@ -389,7 +390,7 @@
         "predefinedRules": {
           "title": "Regras predefinidas",
           "ads": {
-            "name": "Bloquear anúncios",
+            "name": "Bloquear anГєncios",
             "description": ""
           },
           "bypassLan": {
@@ -401,12 +402,12 @@
       "dns": {
         "title": "DNS",
         "remoteDns": "DNS remoto",
-        "remoteDnsDomainStrategy": "Estratégia de domínio de DNS remoto",
-        "directDns": "Resolvedor de servidor de saída (direto)",
-        "directDnsDomainStrategy": "Estratégia de domínio de saída",
+        "remoteDnsDomainStrategy": "EstratГ©gia de domГ­nio de DNS remoto",
+        "directDns": "Resolvedor de servidor de saГ­da (direto)",
+        "directDnsDomainStrategy": "EstratГ©gia de domГ­nio de saГ­da",
         "enableFakeDns": "Ativar DNS falso",
         "domainStrategy": {
-          "auto": "Automático",
+          "auto": "AutomГЎtico",
           "preferIpv6": "Preferir IPv6",
           "preferIpv4": "Preferir IPv4",
           "ipv4Only": "Apenas IPv4",
@@ -415,9 +416,9 @@
       },
       "inbound": {
         "title": "Entrada",
-        "serviceMode": "Modo de serviço",
+        "serviceMode": "Modo de serviГ§o",
         "serviceModes": {
-          "proxy": "Apenas serviço de proxy",
+          "proxy": "Apenas serviГ§o de proxy",
           "systemProxy": "Definir proxy do sistema",
           "tun": "VPN"
         },
@@ -427,7 +428,7 @@
           "tun": "VPN"
         },
         "strictRoute": "Roteamento estrito",
-        "tunImplementation": "Implementação de TUN",
+        "tunImplementation": "ImplementaГ§ГЈo de TUN",
         "tunImplementations": {
           "mixed": "Misto",
           "system": "Sistema",
@@ -442,7 +443,7 @@
       "tlsTricks": {
         "title": "Truques de TLS",
         "enable": "Ativar fragmento",
-        "packets": "Pacotes de Fragmentação",
+        "packets": "Pacotes de FragmentaГ§ГЈo",
         "packetsTlsHello": "TLS Hello",
         "packets1_1": "1-1",
         "packets1_2": "1-2",
@@ -452,7 +453,7 @@
         "size": "Tamanho do fragmento",
         "sleep": "Atraso do fragmento",
         "mixedSniCase": {
-          "enable": "Ativar maiúsculas/minúsculas mistas no SNI"
+          "enable": "Ativar maiГєsculas/minГєsculas mistas no SNI"
         },
         "padding": {
           "enable": "Ativar preenchimento",
@@ -461,75 +462,75 @@
       },
       "chain": {
         "title": "Cadeia",
-        "subtitle": "Segurança extra & Desbloqueador",
+        "subtitle": "SeguranГ§a extra & Desbloqueador",
         "finalIp": "IP final",
         "levels": {
           "app": {
             "title": "App",
-            "msg": "Ponto de início: O tráfego do seu app entra na cadeia aqui e passa pelas camadas seguintes para se preparar para o bypass final"
+            "msg": "Ponto de inГ­cio: O trГЎfego do seu app entra na cadeia aqui e passa pelas camadas seguintes para se preparar para o bypass final"
           },
           "extraSecurity": {
-            "title": "Segurança extra",
-            "msg": "Adiciona um escudo extra para manter seus dados privados, mesmo que seu perfil principal não seja confiável"
+            "title": "SeguranГ§a extra",
+            "msg": "Adiciona um escudo extra para manter seus dados privados, mesmo que seu perfil principal nГЈo seja confiГЎvel"
           },
           "mainProfile": {
             "title": "Perfil principal"
           },
           "unblocker": {
             "title": "Desbloqueador",
-            "msg": "Ajuda a contornar restrições de rede. Se o ajudante se conectar, seu perfil principal ainda poderá funcionar mesmo que esteja bloqueado no momento"
+            "msg": "Ajuda a contornar restriГ§Гµes de rede. Se o ajudante se conectar, seu perfil principal ainda poderГЎ funcionar mesmo que esteja bloqueado no momento"
           },
           "filtering": {
             "title": "Filtragem",
-            "msg": "Saída final: Após passar pelas camadas ativas (Segurança extra, Perfil principal ou Desbloqueador) e aplicar seus efeitos, seu tráfego é finalmente roteado para contornar a filtragem da rede local"
+            "msg": "SaГ­da final: ApГіs passar pelas camadas ativas (SeguranГ§a extra, Perfil principal ou Desbloqueador) e aplicar seus efeitos, seu trГЎfego Г© finalmente roteado para contornar a filtragem da rede local"
           }
         },
         "warp": {
-          "missingConfig": "Configuração WARP ausente",
-          "licenseKey": "Chave de licença",
+          "missingConfig": "ConfiguraГ§ГЈo WARP ausente",
+          "licenseKey": "Chave de licenГ§a",
           "cleanIp": "IP limpo",
           "port": "Porta",
           "noise": {
-            "count": "Contagem de ruído",
-            "mode": "Modo de ruído",
-            "size": "Tamanho do ruído",
-            "delay": "Atraso do ruído"
+            "count": "Contagem de ruГ­do",
+            "mode": "Modo de ruГ­do",
+            "size": "Tamanho do ruГ­do",
+            "delay": "Atraso do ruГ­do"
           }
         },
         "psiphon": {
-          "selectServerRegion": "Selecionar região do servidor",
+          "selectServerRegion": "Selecionar regiГЈo do servidor",
           "regions": {
             "auto": "@:common.auto",
-            "at": "Áustria (at)",
-            "au": "Austrália (au)",
-            "be": "Bélgica (be)",
-            "bg": "Bulgária (bg)",
-            "ca": "Canadá (ca)",
-            "ch": "Suíça (ch)",
-            "cz": "República Tcheca (cz)",
+            "at": "ГЃustria (at)",
+            "au": "AustrГЎlia (au)",
+            "be": "BГ©lgica (be)",
+            "bg": "BulgГЎria (bg)",
+            "ca": "CanadГЎ (ca)",
+            "ch": "SuГ­Г§a (ch)",
+            "cz": "RepГєblica Tcheca (cz)",
             "de": "Alemanha (de)",
             "dk": "Dinamarca (dk)",
-            "ee": "Estônia (ee)",
+            "ee": "EstГґnia (ee)",
             "es": "Espanha (es)",
-            "fi": "Finlândia (fi)",
-            "fr": "França (fr)",
+            "fi": "FinlГўndia (fi)",
+            "fr": "FranГ§a (fr)",
             "gb": "Reino Unido (gb)",
-            "hr": "Croácia (hr)",
+            "hr": "CroГЎcia (hr)",
             "hu": "Hungria (hu)",
             "ie": "Irlanda (ie)",
-            "in": "Índia (in)",
-            "it": "Itália (it)",
-            "jp": "Japão (jp)",
-            "lv": "Letônia (lv)",
-            "nl": "Países Baixos (nl)",
+            "in": "ГЌndia (in)",
+            "it": "ItГЎlia (it)",
+            "jp": "JapГЈo (jp)",
+            "lv": "LetГґnia (lv)",
+            "nl": "PaГ­ses Baixos (nl)",
             "no": "Noruega (no)",
-            "pl": "Polônia (pl)",
+            "pl": "PolГґnia (pl)",
             "pt": "Portugal (pt)",
-            "ro": "Romênia (ro)",
-            "rs": "Sérvia (rs)",
-            "se": "Suécia (se)",
+            "ro": "RomГЄnia (ro)",
+            "rs": "SГ©rvia (rs)",
+            "se": "SuГ©cia (se)",
             "sg": "Singapura (sg)",
-            "sk": "Eslováquia (sk)",
+            "sk": "EslovГЎquia (sk)",
             "us": "Estados Unidos (us)"
           }
         },
@@ -542,10 +543,10 @@
   },
   "components": {
     "stats": {
-      "connection": "Conexão",
-      "traffic": "Tráfego",
-      "trafficLive": "Tráfego ao vivo",
-      "trafficTotal": "Tráfego total",
+      "connection": "ConexГЈo",
+      "traffic": "TrГЎfego",
+      "trafficLive": "TrГЎfego ao vivo",
+      "trafficTotal": "TrГЎfego total",
       "uplink": "Envio",
       "downlink": "Recebimento",
       "speed": "Velocidade",
@@ -554,15 +555,15 @@
     "subscriptionInfo": {
       "upload": "Upload",
       "download": "Download",
-      "total": "Tráfego total",
+      "total": "TrГЎfego total",
       "expireDate": "Data de validade",
       "expired": "Expirado",
       "noTraffic": "Cota esgotada",
       "remainingTime": "Tempo restante",
       "remainingDuration": "${duration} dias restantes",
       "remainingDurationNew": "${duration} dias",
-      "remainingTrafficSemanticLabel": "${consumed} de ${total} de tráfego consumido",
-      "remainingTraffic": "Tráfego restante",
+      "remainingTrafficSemanticLabel": "${consumed} de ${total} de trГЎfego consumido",
+      "remainingTraffic": "TrГЎfego restante",
       "remainingUsage": "Restante",
       "profileSite": "Provedor",
       "profileSupport": "Suporte"
@@ -573,24 +574,24 @@
       "title": "Ordenar por",
       "sort": {
         "name": "Alfabeticamente",
-        "lastUpdate": "Última atualização"
+        "lastUpdate": "Гљltima atualizaГ§ГЈo"
       }
     },
     "warpLicense": {
       "title": "Consentimento do Cloudflare WARP",
-      "description(rich)": "O Cloudflare WARP é um provedor de VPN WireGuard gratuito. Ao ativar esta opção, você concorda com os ${tos(Termos de Serviço)} e a ${privacy(Política de Privacidade)} do Cloudflare WARP."
+      "description(rich)": "O Cloudflare WARP Г© um provedor de VPN WireGuard gratuito. Ao ativar esta opГ§ГЈo, vocГЄ concorda com os ${tos(Termos de ServiГ§o)} e a ${privacy(PolГ­tica de Privacidade)} do Cloudflare WARP."
     },
     "newVersion": {
-      "title": "Atualização disponível",
-      "msg": "Uma nova versão do @:common.appTitle está disponível. Deseja atualizar agora?",
-      "currentVersion": "Versão atual: ",
-      "newVersion": "Nova versão: ",
+      "title": "AtualizaГ§ГЈo disponГ­vel",
+      "msg": "Uma nova versГЈo do @:common.appTitle estГЎ disponГ­vel. Deseja atualizar agora?",
+      "currentVersion": "VersГЈo atual: ",
+      "newVersion": "Nova versГЈo: ",
       "updateNow": "Atualizar agora"
     },
     "confirmation": {
       "settings": {
         "import": {
-          "msg": "Isso substituirá todas as opções de configuração pelos valores fornecidos. Você tem certeza?"
+          "msg": "Isso substituirГЎ todas as opГ§Гµes de configuraГ§ГЈo pelos valores fornecidos. VocГЄ tem certeza?"
         }
       },
       "profile": {
@@ -601,11 +602,11 @@
       },
       "perAppProxy": {
         "shareOnGithub": {
-          "title": "Melhorando a seleção automática",
-          "msg": "Ao compartilhar os aplicativos selecionados, você ajuda a completar a lista de \"seleção automática\""
+          "title": "Melhorando a seleГ§ГЈo automГЎtica",
+          "msg": "Ao compartilhar os aplicativos selecionados, vocГЄ ajuda a completar a lista de \"seleГ§ГЈo automГЎtica\""
         },
         "import": {
-          "msg": "Isso substituirá todas as suas seleções atuais de proxy por aplicativo. Tem certeza de que deseja continuar?"
+          "msg": "Isso substituirГЎ todas as suas seleГ§Гµes atuais de proxy por aplicativo. Tem certeza de que deseja continuar?"
         }
       },
       "routeRule": {
@@ -617,12 +618,12 @@
     },
     "experimentalNotice": {
       "title": "Recursos experimentais em uso",
-      "msg": "Você ativou alguns recursos experimentais que podem afetar a qualidade da conexão e causar erros inesperados. Você sempre pode alterar ou redefinir essas opções na página de configurações.",
-      "disable": "Não mostrar novamente"
+      "msg": "VocГЄ ativou alguns recursos experimentais que podem afetar a qualidade da conexГЈo e causar erros inesperados. VocГЄ sempre pode alterar ou redefinir essas opГ§Гµes na pГЎgina de configuraГ§Гµes.",
+      "disable": "NГЈo mostrar novamente"
     },
     "noActiveProfile": {
       "title": "Escolha um perfil",
-      "msg": "Para começar, adicione um perfil de conexão que inclua os detalhes da sua conexão VPN.\n\nAinda não tem um servidor VPN? Não se preocupe, siga o tutorial abaixo para configurar um rapidamente e de graça.",
+      "msg": "Para comeГ§ar, adicione um perfil de conexГЈo que inclua os detalhes da sua conexГЈo VPN.\n\nAinda nГЈo tem um servidor VPN? NГЈo se preocupe, siga o tutorial abaixo para configurar um rapidamente e de graГ§a.",
       "helpBtn": {
         "label": "Mostre-me como",
         "url": "https://hiddify.com/manager/"
@@ -630,27 +631,27 @@
     },
     "unknownDomainsWarning": {
       "title": "Aviso de link externo",
-      "youAreAboutToVisit": "Você está prestes a visitar:",
-      "thisWebsiteIsNotInOurTrustedList": "Este site não está na nossa lista de confiança. Prossiga com cautela."
+      "youAreAboutToVisit": "VocГЄ estГЎ prestes a visitar:",
+      "thisWebsiteIsNotInOurTrustedList": "Este site nГЈo estГЎ na nossa lista de confianГ§a. Prossiga com cautela."
     },
     "proxyInfo": {
       "fullTag": "Tag completa:",
       "type": "Tipo:",
       "testTime": "Hora do teste:",
-      "testDelay": "Latência do teste:",
+      "testDelay": "LatГЄncia do teste:",
       "isSelected": "Selecionado:",
-      "isGroup": "É um grupo",
-      "isSecure": "É seguro:",
+      "isGroup": "Г‰ um grupo",
+      "isSecure": "Г‰ seguro:",
       "port": "Porta:",
       "host": "Host:",
       "ip": "IP:",
-      "countryCode": "Código do país:",
-      "region": "Região:",
+      "countryCode": "CГіdigo do paГ­s:",
+      "region": "RegiГЈo:",
       "city": "Cidade:",
       "asn": "ASN:",
-      "organization": "Organização:",
-      "location": "Localização:",
-      "postalCode": "Código postal:",
+      "organization": "OrganizaГ§ГЈo:",
+      "location": "LocalizaГ§ГЈo:",
+      "postalCode": "CГіdigo postal:",
       "download": "Download:",
       "upload": "Upload:"
     },
@@ -668,40 +669,40 @@
     "disconnect": "Desconectar",
     "disconnecting": "Desconectando...",
     "reconnect": "Reconectar",
-    "reconnectMsg": "Reconectando para aplicar as alterações..."
+    "reconnectMsg": "Reconectando para aplicar as alteraГ§Гµes..."
   },
   "errors": {
     "unexpected": "Erro inesperado",
     "connection": {
-      "unexpected": "Erro de conexão inesperado",
-      "timeout": "Tempo limite de conexão esgotado",
-      "badResponse": "Resposta inválida",
-      "connectionError": "Erro de conexão",
-      "badCertificate": "Certificado inválido"
+      "unexpected": "Erro de conexГЈo inesperado",
+      "timeout": "Tempo limite de conexГЈo esgotado",
+      "badResponse": "Resposta invГЎlida",
+      "connectionError": "Erro de conexГЈo",
+      "badCertificate": "Certificado invГЎlido"
     },
     "profiles": {
       "unexpected": "Erro inesperado",
-      "notFound": "Perfil não encontrado",
-      "invalidConfig": "Configurações inválidas",
-      "invalidUrl": "URL inválida",
-      "canceledByUser": "Cancelado pelo usuário"
+      "notFound": "Perfil nГЈo encontrado",
+      "invalidConfig": "ConfiguraГ§Гµes invГЎlidas",
+      "invalidUrl": "URL invГЎlida",
+      "canceledByUser": "Cancelado pelo usuГЎrio"
     },
     "connectivity": {
       "unexpected": "Falha inesperada",
-      "missingVpnPermission": "Permissão de VPN ausente",
-      "missingNotificationPermission": "Permissão de notificação ausente",
-      "core": "Erro no núcleo"
+      "missingVpnPermission": "PermissГЈo de VPN ausente",
+      "missingNotificationPermission": "PermissГЈo de notificaГ§ГЈo ausente",
+      "core": "Erro no nГєcleo"
     },
     "singbox": {
-      "serviceNotRunning": "O serviço não está em execução",
-      "missingPrivilege": "Permissão ausente",
-      "missingPrivilegeMsg": "O modo VPN requer privilégios de administrador. Reinicie o aplicativo como administrador ou altere o modo de serviço.",
-      "invalidConfigOptions": "Opções de configuração inválidas",
-      "invalidConfig": "Configuração inválida"
+      "serviceNotRunning": "O serviГ§o nГЈo estГЎ em execuГ§ГЈo",
+      "missingPrivilege": "PermissГЈo ausente",
+      "missingPrivilegeMsg": "O modo VPN requer privilГ©gios de administrador. Reinicie o aplicativo como administrador ou altere o modo de serviГ§o.",
+      "invalidConfigOptions": "OpГ§Гµes de configuraГ§ГЈo invГЎlidas",
+      "invalidConfig": "ConfiguraГ§ГЈo invГЎlida"
     },
     "warp": {
-      "missingLicense": "Licença do WARP ausente",
-      "missingLicenseMsg": "O perfil selecionado usa o recurso WARP. Para usar este recurso, você deve concordar com a licença do WARP."
+      "missingLicense": "LicenГ§a do WARP ausente",
+      "missingLicenseMsg": "O perfil selecionado usa o recurso WARP. Para usar este recurso, vocГЄ deve concordar com a licenГ§a do WARP."
     }
   }
 }
