@@ -13,7 +13,6 @@ import 'package:hiddify/features/route_rules/notifier/rules_notifier.dart';
 import 'package:hiddify/features/route_rules/widget/rule_tile.dart';
 import 'package:hiddify/features/settings/data/config_option_repository.dart';
 import 'package:hiddify/features/settings/widget/preference_tile.dart';
-import 'package:hiddify/singbox/model/singbox_config_enum.dart';
 import 'package:hiddify/utils/utils.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
@@ -212,22 +211,9 @@ class RoutingOptionsPage extends HookConsumerWidget {
                       if (context.mounted) context.goNamed('perAppProxy');
                     },
                   ),
-                // «Стратегия балансера» скрыта из настроек (параметр остаётся
-                // в конфиге со значением по умолчанию).
-                SwitchListTile.adaptive(
-                  title: Text(t.pages.settings.routing.generalOptions.resolveDestination),
-                  secondary: const Icon(Icons.find_replace_rounded),
-                  value: ref.watch(ConfigOptions.resolveDestination),
-                  onChanged: ref.read(ConfigOptions.resolveDestination.notifier).update,
-                ),
-                ChoicePreferenceWidget(
-                  selected: ref.watch(ConfigOptions.ipv6Mode),
-                  preferences: ref.watch(ConfigOptions.ipv6Mode.notifier),
-                  choices: IPv6Mode.values,
-                  title: t.pages.settings.routing.generalOptions.ipv6Route,
-                  icon: Icons.looks_6_rounded,
-                  presentChoice: (value) => value.present(t),
-                ),
+                // Скрыты из настроек (параметры остаются в конфиге со значениями
+                // по умолчанию): «Стратегия балансера», «Определять адрес
+                // назначения» (resolveDestination), «Маршрут IPv6» (ipv6Mode).
               ],
             ),
           ),
