@@ -3,7 +3,8 @@ import 'package:humanizer/humanizer.dart';
 extension ByteFormatter on int {
   String size() => bytes().toString();
 
-  static final _sizeOfFormat = InformationSizeFormat(permissibleValueUnits: {InformationUnit.gibibyte});
+  // GB (десятичные, «GB»), а не GiB (двоичные «GiB») — привычнее пользователю.
+  static final _sizeOfFormat = InformationSizeFormat(permissibleValueUnits: {InformationUnit.gigabyte});
 
   String sizeGB() => _sizeOfFormat.format(bytes());
 

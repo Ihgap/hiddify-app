@@ -351,7 +351,7 @@ class ProfileSubscriptionInfo extends HookConsumerWidget {
               subInfo.total >
                       10 *
                           1099511627776 //10TB
-                  ? "∞ GiB"
+                  ? "∞ GB"
                   : subInfo.consumption.sizeOf(subInfo.total),
               semanticsLabel: t.components.subscriptionInfo.remainingTrafficSemanticLabel(
                 consumed: subInfo.consumption.sizeGB(),
@@ -399,7 +399,7 @@ class NewTrafficSubscriptionInfo extends HookConsumerWidget {
                 subInfo.total >
                         10 *
                             1099511627776 //10TB
-                    ? "∞ GiB"
+                    ? "∞ GB"
                     : subInfo.consumption.sizeOf(subInfo.total),
                 semanticsLabel: t.components.subscriptionInfo.remainingTrafficSemanticLabel(
                   consumed: subInfo.consumption.sizeGB(),
@@ -504,7 +504,7 @@ class NewDayTrafficSubscriptionInfo extends HookConsumerWidget {
             subInfo.total >
                     10 *
                         1099511627776 //10TB
-                ? "∞ GiB"
+                ? "∞ GB"
                 : subInfo.consumption.sizeOf(subInfo.total),
             semanticsLabel: t.components.subscriptionInfo.remainingTrafficSemanticLabel(
               consumed: subInfo.consumption.sizeGB(),
