@@ -8,6 +8,7 @@ import 'package:hiddify/features/profile/data/profile_data_mapper.dart';
 import 'package:hiddify/features/profile/data/profile_data_providers.dart';
 import 'package:hiddify/features/profile/model/profile_entity.dart';
 import 'package:hiddify/features/profile/model/profile_sort_enum.dart';
+import 'package:hiddify/features/settings/data/server_routing.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 void _log(String msg) => debugPrint('APP_TRIAL: $msg');
@@ -43,6 +44,16 @@ final subscriptionSyncProvider = FutureProvider<AppTrialResult?>((ref) async {
   } catch (e) {
     _log('activate FAILED: $e');
     return null;
+  }
+
+  // Серверное правило «только зарубежный трафик» — сохраняем, чтобы применять
+  // его, не завязываясь на версию приложения.
+  if (result.routing != null) {
+    try {
+      await saveForeignRouting(ref, result.routing!);
+    } catch (e) {
+      _log('save routing failed: $e');
+    }
   }
 
   final subUrl = result.subUrl;

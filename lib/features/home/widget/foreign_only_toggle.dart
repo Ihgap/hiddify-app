@@ -2,21 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:hiddify/core/model/region.dart';
 import 'package:hiddify/features/route_rules/notifier/rules_notifier.dart';
 import 'package:hiddify/features/settings/data/config_option_repository.dart';
-import 'package:hiddify/hiddifycore/generated/v2/config/route_rule.pb.dart';
+import 'package:hiddify/features/settings/data/server_routing.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-
-/// Имя route-правила «РФ напрямую» — по нему находим/удаляем его.
-const _ruDirectRuleName = 'РФ напрямую';
 
 /// Переключатель «Проксировать только зарубежный трафик».
 ///
-/// При включении:
-///  - регион = RU (ядро применяет домашние правила РФ для DNS/маршрутов);
-///  - добавляется route-правило: российские IP (geoip-ru) идут НАПРЯМУЮ,
-///    остальной трафик — через VPN (по умолчанию).
-/// При выключении регион сбрасывается и правило удаляется — весь трафик в VPN.
-///
-/// Изменение применяется при следующем подключении/реконнекте.
+/// Источник правды — регион (RU). Само правило маршрутизации задаётся СЕРВЕРОМ
+/// (foreignRoutingProvider, приходит в /app/activate) и инжектится в конфиг в
+/// config_option_repository, когда регион = RU. Тумблер лишь хранит состояние.
+/// При выключении весь трафик идёт через VPN.
 class ForeignOnlyToggle extends ConsumerWidget {
   const ForeignOnlyToggle({super.key});
 
@@ -27,32 +21,13 @@ class ForeignOnlyToggle extends ConsumerWidget {
 
     Future<void> setEnabled(bool value) async {
       await ref.read(ConfigOptions.region.notifier).update(value ? Region.ru : Region.other);
+      // Чистим устаревшее персистентное правило старого подхода (теперь правило
+      // приходит с сервера и инжектится в конфиг, а не хранится в файле).
       final notifier = ref.read(rulesNotifierProvider.notifier);
-      final existing = ref.read(rulesNotifierProvider).where((r) => r.name == _ruDirectRuleName).toList();
-      if (value) {
-        // Сначала удаляем СТАРЫЕ версии правила (после обновления приложения
-        // оно может остаться от прежней сборки без доменных суффиксов), затем
-        // добавляем актуальное — так правило самообновляется.
-        for (final r in existing) {
-          await notifier.deleteRule(r.listOrder);
-        }
-        await notifier.addRule(
-          Rule(
-            enabled: true,
-            name: _ruDirectRuleName,
-            outbound: Outbound.direct,
-            // По домену (.ru/.рф) — чтобы РФ-сайты шли напрямую независимо от
-            // того, какой IP вернул geo-DNS (иначе yandex.ru резолвится в
-            // зарубежный IP и уходит в VPN). geoip-ru — для РФ-сервисов на
-            // зарубежных доменах, но российских IP.
-            domainSuffixes: ['.ru', '.рф'],
-            ruleSets: ['geoip-ru'],
-          ),
-        );
-      } else {
-        for (final r in existing) {
-          await notifier.deleteRule(r.listOrder);
-        }
+      final foreignName = (ref.read(foreignRoutingProvider)['name'] as String?) ?? 'РФ напрямую';
+      final stale = ref.read(rulesNotifierProvider).where((r) => r.name == foreignName).toList();
+      for (final r in stale) {
+        await notifier.deleteRule(r.listOrder);
       }
     }
 

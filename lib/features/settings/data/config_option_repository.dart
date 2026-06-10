@@ -8,6 +8,7 @@ import 'package:hiddify/core/utils/preferences_utils.dart';
 import 'package:hiddify/features/log/model/log_level.dart';
 import 'package:hiddify/features/profile/data/profile_parser.dart';
 import 'package:hiddify/features/route_rules/notifier/rules_notifier.dart';
+import 'package:hiddify/features/settings/data/server_routing.dart';
 import 'package:hiddify/features/settings/model/config_option_failure.dart';
 import 'package:hiddify/hiddifycore/generated/v2/config/route_rule.pb.dart';
 import 'package:hiddify/singbox/model/singbox_config_enum.dart';
@@ -456,6 +457,23 @@ abstract class ConfigOptions {
 
     final mode = ref.watch(serviceMode);
     // final reg = ref.watch(Preferences.region.notifier).raw();
+
+    // «Только зарубежный трафик»: правило приходит С СЕРВЕРА (foreignRouting),
+    // применяется когда регион = RU. Старую персистентную версию правила с тем
+    // же именем исключаем — источник правды теперь сервер/код, не файл.
+    final regionRu = ref.watch(region) == Region.ru;
+    final foreignRouting = ref.watch(foreignRoutingProvider);
+    final foreignName = (foreignRouting['name'] as String?) ?? 'РФ напрямую';
+    final routeRules = <Rule>[
+      ...ref.watch(rulesNotifierProvider).where((r) => r.name != foreignName),
+    ];
+    if (regionRu) {
+      routeRules.add(foreignRoutingRule(foreignRouting, routeRules.length));
+    }
+    final directDns = (regionRu && foreignRouting['direct_dns'] is String)
+        ? foreignRouting['direct_dns'] as String
+        : ref.watch(directDnsAddress);
+
     return SingboxConfigOption(
       region: ref.watch(region).name,
       balancerStrategy: ref.watch(balancerStrategy),
@@ -467,7 +485,7 @@ abstract class ConfigOptions {
       ipv6Mode: ref.watch(ipv6Mode),
       remoteDnsAddress: ref.watch(remoteDnsAddress),
       remoteDnsDomainStrategy: ref.watch(remoteDnsDomainStrategy),
-      directDnsAddress: ref.watch(directDnsAddress),
+      directDnsAddress: directDns,
       directDnsDomainStrategy: ref.watch(directDnsDomainStrategy),
       mixedPort: ref.watch(mixedPort),
       tproxyPort: ref.watch(tproxyPort),
@@ -529,7 +547,7 @@ abstract class ConfigOptions {
         ),
         profile: SingboxUnblockerProfileOption(id: ref.watch(unblockerProfileId)),
       ),
-      routeRule: RouteRule(rules: ref.watch(rulesNotifierProvider)).toProto3Json()! as Map<String, dynamic>,
+      routeRule: RouteRule(rules: routeRules).toProto3Json()! as Map<String, dynamic>,
     );
   });
 }

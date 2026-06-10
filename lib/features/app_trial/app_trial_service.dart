@@ -13,6 +13,7 @@ class AppTrialResult {
     this.linked = false,
     this.linkUrl,
     this.payUrl,
+    this.routing,
   });
 
   /// trial_started | active | expired
@@ -23,6 +24,9 @@ class AppTrialResult {
   final String? linkUrl;
   final String? payUrl;
 
+  /// Серверное правило маршрутизации «только зарубежный трафик» (с version).
+  final Map<String, dynamic>? routing;
+
   factory AppTrialResult.fromJson(Map<String, dynamic> j) => AppTrialResult(
     status: (j['status'] as String?) ?? 'unknown',
     subUrl: j['sub_url'] as String?,
@@ -30,6 +34,7 @@ class AppTrialResult {
     linked: (j['linked'] as bool?) ?? false,
     linkUrl: j['link_url'] as String?,
     payUrl: j['pay_url'] as String?,
+    routing: (j['routing'] as Map?)?.cast<String, dynamic>(),
   );
 }
 
