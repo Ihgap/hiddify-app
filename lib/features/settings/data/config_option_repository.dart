@@ -40,9 +40,11 @@ abstract class ConfigOptions {
   );
   static final useXrayCoreWhenPossible = PreferencesNotifier.create<bool, bool>("use-xray-core-when-possible", false);
   // static final blockAds = PreferencesNotifier.create<bool, bool>("block-ads", false);
+  // info (а не warn): чтобы в логах было видно маршрут/соединения для диагностики
+  // (какой outbound, DNS, причина обрыва). Для чистого релиза можно вернуть warn.
   static final logLevel = PreferencesNotifier.create<LogLevel, String>(
     "log-level",
-    LogLevel.warn,
+    LogLevel.info,
     mapFrom: LogLevel.values.byName,
     mapTo: (value) => value.name,
   );

@@ -165,6 +165,13 @@ class SettingsPage extends HookConsumerWidget {
             icon: Icons.content_cut_rounded,
             namedLocation: context.namedLocation('tlsTricks'),
           ),
+          // «Логи» возвращены, чтобы пользователь мог снять и отдать логи для
+          // диагностики (кнопка «Поделиться» на странице логов).
+          SettingsSection(
+            title: t.pages.logs.title,
+            icon: Icons.article_rounded,
+            namedLocation: context.namedLocation('logs'),
+          ),
           if (PlatformUtils.isIOS)
             Material(
               child: ListTile(
