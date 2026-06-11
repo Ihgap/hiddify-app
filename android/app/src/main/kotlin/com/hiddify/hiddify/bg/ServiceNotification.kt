@@ -180,6 +180,9 @@ class ServiceNotification(private val status: MutableLiveData<Status>, private v
     }
 
     private fun registerReceiver() {
+        // Защита от повторной регистрации: start() может вызываться снова при
+        // возобновлении из паузы — без guard получили бы двойную регистрацию.
+        if (receiverRegistered) return
         service.registerReceiver(this, IntentFilter().apply {
             addAction(Intent.ACTION_SCREEN_ON)
             addAction(Intent.ACTION_SCREEN_OFF)

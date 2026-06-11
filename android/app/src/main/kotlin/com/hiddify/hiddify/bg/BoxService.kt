@@ -349,14 +349,23 @@ class BoxService(
         setPausedMarker(false)
         GlobalScope.launch(Dispatchers.IO) {
             try {
-                withContext(Dispatchers.Main) { notification.setPaused(false) }
-                // Возобновление инициирует НАТИВ (Flutter не участвует), поэтому
-                // ядро должно стартовать само в startService(). После коннекта из
-                // приложения флаг стоит false (ядро поднимает Flutter по gRPC) —
-                // принудительно ставим true, иначе startService поднимет сервис,
-                // но не запустит ядро (VPN не возобновится).
-                Settings.startCoreAfterStartingService = true
-                startService()
+                // НЕ вызываем startService(): он повторно делает Mobile.setup() с
+                // listen 127.0.0.1:19079, а на паузе мы делали Mobile.stop() (а не
+                // close) — gRPC-сервер на этом порту остался жив. Повторный setup на
+                // занятый порт ронял процесс ("приложение закрылось"), а ядро
+                // оставалось в битом состоянии → "createService - null" до
+                // перезапуска приложения.
+                //
+                // Достаточно заново стартовать ядро: Mobile.start("","") через
+                // loadLastStartRequestIfNeeded переиспользует существующий setup и
+                // последний конфиг, и заново поднимает TUN.
+                Mobile.start("", "")
+                status.postValue(Status.Started)
+                withContext(Dispatchers.Main) {
+                    notification.setPaused(false)
+                    notification.show(activeProfileName, R.string.status_started)
+                }
+                notification.start()
             } catch (e: Exception) {
                 Log.w(TAG, "resume failed", e)
             }
