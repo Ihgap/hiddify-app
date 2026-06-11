@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -26,27 +28,40 @@ class LogsPage extends HookConsumerWidget with PresLogger {
 
     final filterController = useTextEditingController(text: state.filter);
 
+    // Логи живут только в памяти (gRPC-стрим), файлы box.log/app.log пустые —
+    // поэтому перед шарингом записываем показанные логи в файл, иначе уходит
+    // пустое вложение и Telegram пишет «вложение не поддерживается».
+    Future<void> writeAndShare(File target) async {
+      final logs = ref.read(logsOverviewNotifierProvider).logs.valueOrNull ?? const [];
+      final buf = StringBuffer()
+        ..writeln('# TuTu4kA VPN logs — ${DateTime.now().toIso8601String()} — ${logs.length} lines');
+      // В нотифаере логи хранятся «новые сверху»; разворачиваем в хронологию.
+      for (final l in logs.reversed) {
+        buf.writeln('${l.time?.toIso8601String() ?? ''} [${l.level?.name ?? '-'}] ${l.message}');
+      }
+      try {
+        await target.writeAsString(buf.toString());
+      } catch (_) {}
+      await UriUtils.tryShareOrLaunchFile(
+        Uri.parse(target.path),
+        fileOrDir: pathResolver.directory.uri,
+        mimeType: 'text/plain',
+      );
+    }
+
     // Кнопки «Поделиться логами» показываем ВСЕГДА (раньше — только при
     // debug/desktop), чтобы пользователь мог отдать логи, ничего не включая.
     final List<PopupMenuEntry> popupButtons = [
       PopupMenuItem(
         child: Text(t.pages.logs.shareCoreLogs),
-        onTap: () async {
-          await UriUtils.tryShareOrLaunchFile(
-            Uri.parse(pathResolver.coreFile().path),
-            fileOrDir: pathResolver.directory.uri,
-            mimeType: 'text/plain',
-          );
+        onTap: () {
+          writeAndShare(pathResolver.coreFile());
         },
       ),
       PopupMenuItem(
         child: Text(t.pages.logs.shareAppLogs),
-        onTap: () async {
-          await UriUtils.tryShareOrLaunchFile(
-            Uri.parse(pathResolver.appFile().path),
-            fileOrDir: pathResolver.directory.uri,
-            mimeType: 'text/plain',
-          );
+        onTap: () {
+          writeAndShare(pathResolver.appFile());
         },
       ),
     ];
