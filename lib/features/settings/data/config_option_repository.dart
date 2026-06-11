@@ -134,11 +134,10 @@ abstract class ConfigOptions {
     mapTo: (value) => value.name,
   );
 
-  // 1500 (станд. Ethernet), а не 9000: при MTU 9000 TUN разрешает огромные пакеты,
-  // которые не пролезают в реальные ~1500 моб./Wi-Fi сети → PMTU-blackhole, и
-  // сайты с большим TLS-хендшейком (Яндекс с ECH) рвут соединение
-  // (ERR_CONNECTION_CLOSED), хотя мелкие открываются.
-  static final mtu = PreferencesNotifier.create<int, int>("mtu", 1500);
+  // 9000 (как в стоке): sing-box сам сегментирует через GSO. Пробовали 1500 —
+  // это РЕГРЕССИЯ: ломался и прокси-путь (Яндекс переставал открываться даже без
+  // галки). Поэтому вернули 9000.
+  static final mtu = PreferencesNotifier.create<int, int>("mtu", 9000);
 
   static final strictRoute = PreferencesNotifier.create<bool, bool>("strict-route", true);
 
