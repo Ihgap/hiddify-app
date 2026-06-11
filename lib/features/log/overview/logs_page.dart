@@ -13,6 +13,7 @@ import 'package:hiddify/features/log/model/log_level.dart';
 import 'package:hiddify/features/log/overview/logs_overview_notifier.dart';
 import 'package:hiddify/utils/utils.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:path/path.dart' as p;
 import 'package:sliver_tools/sliver_tools.dart';
 
 class LogsPage extends HookConsumerWidget with PresLogger {
@@ -49,13 +50,29 @@ class LogsPage extends HookConsumerWidget with PresLogger {
       );
     }
 
+    // Детальные логи sing-box (подключения/маршрут/DNS) идут в stderr.log
+    // (Libbox.redirectStderr), а НЕ в gRPC-поток (там только STARTING/STARTED).
+    // Поэтому «логи ядра» = stderr.log напрямую; если его нет — дамп из памяти.
+    Future<void> shareCoreLog() async {
+      final stderr = File(p.join(pathResolver.directory.path, 'stderr.log'));
+      if (stderr.existsSync() && await stderr.length() > 0) {
+        await UriUtils.tryShareOrLaunchFile(
+          Uri.parse(stderr.path),
+          fileOrDir: pathResolver.directory.uri,
+          mimeType: 'text/plain',
+        );
+      } else {
+        await writeAndShare(pathResolver.coreFile());
+      }
+    }
+
     // Кнопки «Поделиться логами» показываем ВСЕГДА (раньше — только при
     // debug/desktop), чтобы пользователь мог отдать логи, ничего не включая.
     final List<PopupMenuEntry> popupButtons = [
       PopupMenuItem(
         child: Text(t.pages.logs.shareCoreLogs),
         onTap: () {
-          writeAndShare(pathResolver.coreFile());
+          shareCoreLog();
         },
       ),
       PopupMenuItem(
