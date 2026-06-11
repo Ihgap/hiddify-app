@@ -35,6 +35,7 @@ class LogsPage extends HookConsumerWidget with PresLogger {
           await UriUtils.tryShareOrLaunchFile(
             Uri.parse(pathResolver.coreFile().path),
             fileOrDir: pathResolver.directory.uri,
+            mimeType: 'text/plain',
           );
         },
       ),
@@ -44,6 +45,7 @@ class LogsPage extends HookConsumerWidget with PresLogger {
           await UriUtils.tryShareOrLaunchFile(
             Uri.parse(pathResolver.appFile().path),
             fileOrDir: pathResolver.directory.uri,
+            mimeType: 'text/plain',
           );
         },
       ),
