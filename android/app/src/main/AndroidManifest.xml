@@ -98,7 +98,8 @@
             android:exported="false"
             android:label="@string/quick_toggle"
             android:launchMode="singleTask"
-            android:taskAffinity="" />
+            android:taskAffinity=""
+            android:theme="@style/TransparentToggleTheme" />
 
         <service
             android:name=".bg.TileService"

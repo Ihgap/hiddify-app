@@ -19,4 +19,12 @@
     <style name="NormalTheme" parent="@android:style/Theme.Light.NoTitleBar">
         <item name="android:windowBackground">?android:colorBackground</item>
     </style>
+    <!-- Невидимая тема для ShortcutActivity (тоггл VPN из виджета): прозрачное
+         окно без анимаций, чтобы при нажатии на виджет не мелькало пустое окно. -->
+    <style name="TransparentToggleTheme" parent="@android:style/Theme.Translucent.NoTitleBar">
+        <item name="android:windowAnimationStyle">@null</item>
+        <item name="android:backgroundDimEnabled">false</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+    </style>
 </resources>
