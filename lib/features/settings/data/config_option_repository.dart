@@ -134,7 +134,11 @@ abstract class ConfigOptions {
     mapTo: (value) => value.name,
   );
 
-  static final mtu = PreferencesNotifier.create<int, int>("mtu", 9000);
+  // 1500 (станд. Ethernet), а не 9000: при MTU 9000 TUN разрешает огромные пакеты,
+  // которые не пролезают в реальные ~1500 моб./Wi-Fi сети → PMTU-blackhole, и
+  // сайты с большим TLS-хендшейком (Яндекс с ECH) рвут соединение
+  // (ERR_CONNECTION_CLOSED), хотя мелкие открываются.
+  static final mtu = PreferencesNotifier.create<int, int>("mtu", 1500);
 
   static final strictRoute = PreferencesNotifier.create<bool, bool>("strict-route", true);
 
