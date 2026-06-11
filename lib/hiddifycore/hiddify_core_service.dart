@@ -116,11 +116,14 @@ class HiddifyCoreService with InfraLogger {
     return TaskEither(() async {
       loggy.debug("changing options");
       // latestOptions = options;
-      // Глобально блокируем QUIC (block-quic) — QUIC через туннель часто ломается
+      // Блокируем QUIC (block-quic) — QUIC через туннель часто ломается
       // (Яндекс/Google не открываются), браузеры из-за этого не всегда откатываются
-      // на TCP. Ядро добавит reject-правило для протокола QUIC → весь трафик идёт
-      // по TCP/HTTP2. Ключ дописываем в JSON, не трогая freezed-модель.
-      final settingsJson = options.toJson()..['block-quic'] = true;
+      // на TCP. Ядро добавит reject-правило для протокола QUIC → трафик идёт по TCP.
+      // НО при «Режиме совместимости» НЕ блокируем: на некоторых сетях крупные
+      // РФ-сайты на прямом пути по TCP рвутся и работают только по QUIC.
+      // Ключ дописываем в JSON, не трогая freezed-модель.
+      final blockQuic = !ref.read(ConfigOptions.compatibilityMode);
+      final settingsJson = options.toJson()..['block-quic'] = blockQuic;
       final encoded = jsonEncode(settingsJson);
       try {
         final res = await core.fgClient.changeHiddifySettings(

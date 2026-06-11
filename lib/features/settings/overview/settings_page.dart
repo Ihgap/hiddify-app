@@ -3,6 +3,7 @@ import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hiddify/core/localization/translations.dart';
 import 'package:hiddify/core/router/dialog/dialog_notifier.dart';
+import 'package:hiddify/features/settings/data/config_option_repository.dart';
 import 'package:hiddify/features/settings/notifier/config_option/config_option_notifier.dart';
 import 'package:hiddify/features/settings/notifier/reset_tunnel/reset_tunnel_notifier.dart';
 import 'package:hiddify/utils/utils.dart';
@@ -171,6 +172,21 @@ class SettingsPage extends HookConsumerWidget {
             title: t.pages.logs.title,
             icon: Icons.article_rounded,
             namedLocation: context.namedLocation('logs'),
+          ),
+          // Опциональный режим совместимости (по умолчанию выключен): для редких
+          // сетей, где не открываются крупные РФ-сайты. При включении не блокирует
+          // QUIC. После переключения нужно переподключить VPN.
+          Material(
+            child: SwitchListTile.adaptive(
+              secondary: const Icon(Icons.healing_rounded),
+              title: const Text('Режим совместимости'),
+              subtitle: const Text(
+                'Включите, если не открываются крупные сайты (Яндекс, Wildberries). '
+                'После включения переподключите VPN.',
+              ),
+              value: ref.watch(ConfigOptions.compatibilityMode),
+              onChanged: ref.read(ConfigOptions.compatibilityMode.notifier).update,
+            ),
           ),
           if (PlatformUtils.isIOS)
             Material(
