@@ -182,7 +182,7 @@ class SettingsPage extends HookConsumerWidget {
               title: const Text('Режим совместимости'),
               subtitle: const Text(
                 'Включите, если не открываются крупные сайты (Яндекс, Wildberries). '
-                'Меняет сетевой режим (системный стек, без блокировки QUIC). '
+                'Меняет сетевой режим (системный стек). '
                 'После включения переподключите VPN.',
               ),
               value: ref.watch(ConfigOptions.compatibilityMode),

@@ -51,10 +51,10 @@ abstract class ConfigOptions {
 
   static final resolveDestination = PreferencesNotifier.create<bool, bool>("resolve-destination", false);
 
-  // Режим совместимости (по умолчанию OFF): для редких сетей/провайдеров, где
-  // не открываются крупные РФ-сайты (Яндекс, WB) на прямом пути. При включении
-  // НЕ блокируем QUIC — крупные сайты идут по QUIC (как без VPN). Применяется в
-  // hiddify_core_service.changeOptions (block-quic = !compatibilityMode).
+  // Режим совместимости (по умолчанию OFF): для редких устройств, где не
+  // открываются крупные РФ-сайты (Яндекс, WB) на прямом пути. При включении
+  // переключает стек TUN на системный (ядро) вместо gVisor — ведёт себя как
+  // «без VPN» на уровне TCP. Опционален, массу не трогает.
   static final compatibilityMode = PreferencesNotifier.create<bool, bool>("compatibility-mode", false);
 
   static final ipv6Mode = PreferencesNotifier.create<IPv6Mode, String>(
