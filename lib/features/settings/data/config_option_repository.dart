@@ -51,10 +51,9 @@ abstract class ConfigOptions {
 
   static final resolveDestination = PreferencesNotifier.create<bool, bool>("resolve-destination", false);
 
-  // Режим совместимости (по умолчанию OFF): для редких устройств, где не
-  // открываются крупные РФ-сайты (Яндекс, WB) на прямом пути. При включении
-  // переключает стек TUN на системный (ядро) вместо gVisor — ведёт себя как
-  // «без VPN» на уровне TCP. Опционален, массу не трогает.
+  // Режим совместимости (по умолчанию OFF): возвращает СТАРЫЙ стек TUN (gVisor)
+  // вместо нового дефолтного system. Для редких устройств, где system даёт сбои.
+  // Большинству не нужен.
   static final compatibilityMode = PreferencesNotifier.create<bool, bool>("compatibility-mode", false);
 
   static final ipv6Mode = PreferencesNotifier.create<IPv6Mode, String>(
@@ -135,9 +134,13 @@ abstract class ConfigOptions {
     validator: (value) => isPort(value.toString()),
   );
 
+  // Дефолт — system (стек ядра), а не gVisor: gVisor (userspace TCP-стек) на
+  // некоторых устройствах рвёт TLS к тяжёлым сайтам (Яндекс, WB) на прямом пути.
+  // system ведёт себя как «без VPN» и совместимее. Кому system не подходит —
+  // «Режим совместимости» возвращает gVisor.
   static final tunImplementation = PreferencesNotifier.create<TunImplementation, String>(
     "tun-implementation",
-    TunImplementation.gvisor,
+    TunImplementation.system,
     mapFrom: TunImplementation.values.byName,
     mapTo: (value) => value.name,
   );
@@ -502,10 +505,9 @@ abstract class ConfigOptions {
       tproxyPort: ref.watch(tproxyPort),
       directPort: ref.watch(directPort),
       redirectPort: ref.watch(redirectPort),
-      // В «Режиме совместимости» используем системный стек TUN (ядро) вместо
-      // gVisor: на некоторых устройствах gVisor рвёт TLS к тяжёлым сайтам
-      // (Яндекс, WB) на прямом пути, а системный стек ведёт себя как «без VPN».
-      tunImplementation: ref.watch(compatibilityMode) ? TunImplementation.system : ref.watch(tunImplementation),
+      // Дефолт — system (ядро). «Режим совместимости» возвращает gVisor для
+      // редких устройств, где system не подходит.
+      tunImplementation: ref.watch(compatibilityMode) ? TunImplementation.gvisor : ref.watch(tunImplementation),
       mtu: ref.watch(mtu),
       strictRoute: ref.watch(strictRoute),
       connectionTestUrl: ref.watch(connectionTestUrl),

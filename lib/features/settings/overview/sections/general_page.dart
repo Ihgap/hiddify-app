@@ -64,6 +64,19 @@ class GeneralPage extends HookConsumerWidget {
             value: !ref.watch(Preferences.disableMemoryLimit),
             onChanged: (value) async => await ref.read(Preferences.disableMemoryLimit.notifier).update(!value),
           ),
+          // Режим совместимости: возвращает старый сетевой стек (gVisor) вместо
+          // нового дефолтного (system). Нужен редким устройствам, где на новом
+          // стеке есть проблемы с подключением. После изменения — переподключить VPN.
+          SwitchListTile.adaptive(
+            title: const Text('Режим совместимости'),
+            subtitle: const Text(
+              'Включите, если после обновления появились проблемы с подключением к сайтам. '
+              'После изменения переподключите VPN.',
+            ),
+            secondary: const Icon(Icons.healing_rounded),
+            value: ref.watch(ConfigOptions.compatibilityMode),
+            onChanged: ref.read(ConfigOptions.compatibilityMode.notifier).update,
+          ),
           ListTile(
             title: Text(t.pages.settings.general.urlTestInterval),
             subtitle: Text(ref.watch(ConfigOptions.urlTestInterval).toApproximateTime(isRelativeToNow: false)),
