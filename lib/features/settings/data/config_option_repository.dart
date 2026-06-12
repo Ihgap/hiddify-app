@@ -502,7 +502,10 @@ abstract class ConfigOptions {
       tproxyPort: ref.watch(tproxyPort),
       directPort: ref.watch(directPort),
       redirectPort: ref.watch(redirectPort),
-      tunImplementation: ref.watch(tunImplementation),
+      // В «Режиме совместимости» используем системный стек TUN (ядро) вместо
+      // gVisor: на некоторых устройствах gVisor рвёт TLS к тяжёлым сайтам
+      // (Яндекс, WB) на прямом пути, а системный стек ведёт себя как «без VPN».
+      tunImplementation: ref.watch(compatibilityMode) ? TunImplementation.system : ref.watch(tunImplementation),
       mtu: ref.watch(mtu),
       strictRoute: ref.watch(strictRoute),
       connectionTestUrl: ref.watch(connectionTestUrl),
