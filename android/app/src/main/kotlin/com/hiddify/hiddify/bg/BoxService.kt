@@ -349,23 +349,18 @@ class BoxService(
         setPausedMarker(false)
         GlobalScope.launch(Dispatchers.IO) {
             try {
-                // НЕ вызываем startService(): он повторно делает Mobile.setup() с
-                // listen 127.0.0.1:19079, а на паузе мы делали Mobile.stop() (а не
-                // close) — gRPC-сервер на этом порту остался жив. Повторный setup на
-                // занятый порт ронял процесс ("приложение закрылось"), а ядро
-                // оставалось в битом состоянии → "createService - null" до
-                // перезапуска приложения.
-                //
-                // Достаточно заново стартовать ядро: Mobile.start("","") через
-                // loadLastStartRequestIfNeeded переиспользует существующий setup и
-                // последний конфиг, и заново поднимает TUN.
-                Mobile.start("", "")
-                status.postValue(Status.Started)
-                withContext(Dispatchers.Main) {
-                    notification.setPaused(false)
-                    notification.show(activeProfileName, R.string.status_started)
-                }
-                notification.start()
+                // Возобновление = полный чистый перезапуск ядра (как обычный
+                // коннект), а не просто Mobile.start: только start не всегда заново
+                // поднимает TUN/сервис после паузы. Сначала Mobile.close() —
+                // полностью гасит ядро и освобождает gRPC-порт 19079, поэтому
+                // последующий Mobile.setup() в startService() НЕ конфликтует по порту
+                // (это и роняло процесс раньше). Затем startService() делает свежий
+                // setup + старт ядра + новый TUN. Флаг нужен, чтобы startService
+                // реально стартовал ядро (иначе только сервис без туннеля).
+                withContext(Dispatchers.Main) { notification.setPaused(false) }
+                Mobile.close(4L)
+                Settings.startCoreAfterStartingService = true
+                startService()
             } catch (e: Exception) {
                 Log.w(TAG, "resume failed", e)
             }
