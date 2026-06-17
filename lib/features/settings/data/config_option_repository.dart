@@ -32,9 +32,11 @@ abstract class ConfigOptions {
     mapTo: (value) => value.key,
   );
 
+  // Дефолт RU → галка «Только зарубежный трафик» включена по умолчанию
+  // (РФ-сайты идут напрямую/быстро, зарубежное — через VPN).
   static final region = PreferencesNotifier.create<Region, String>(
     "region",
-    Region.other,
+    Region.ru,
     mapFrom: Region.values.byName,
     mapTo: (value) => value.name,
   );
