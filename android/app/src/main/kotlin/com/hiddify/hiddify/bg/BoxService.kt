@@ -383,9 +383,11 @@ class BoxService(
     }
 
     @OptIn(DelicateCoroutinesApi::class)
-    @Suppress("SameReturnValue")
-    internal fun onStartCommand(): Int {
-        if (status.value != Status.Stopped) return Service.START_NOT_STICKY
+    internal fun onStartCommand(intent: Intent? = null): Int {
+        // START_STICKY: если систему/прошивку убьёт службу — Android попытается её
+        // перезапустить (intent == null). Так VPN восстанавливается сам, без захода
+        // в приложение.
+        if (status.value != Status.Stopped) return Service.START_STICKY
         status.value = Status.Starting
 
         if (!receiverRegistered) {
@@ -402,16 +404,15 @@ class BoxService(
 
         GlobalScope.launch(Dispatchers.IO) {
             Settings.startedByUser = true
+            // Системный перезапуск (START_STICKY → intent == null): Flutter не
+            // участвует, поэтому ядро надо поднять самим (иначе служба возродится,
+            // но туннель — нет). При обычном старте флаг не трогаем (ядро поднимает
+            // Flutter по gRPC).
+            if (intent == null) Settings.startCoreAfterStartingService = true
             initialize()
-//            try {
-//                startCommandServer()
-//            } catch (e: Exception) {
-//                stopAndAlert(Alert.StartCommandServer, e.message)
-//                return@launch
-//            }
             startService()
         }
-        return Service.START_NOT_STICKY
+        return Service.START_STICKY
     }
 
     fun onBind(intent: Intent): IBinder {
