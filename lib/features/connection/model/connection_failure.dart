@@ -37,6 +37,17 @@ sealed class ConnectionFailure with _$ConnectionFailure, Failure {
   @override
   ({String type, String? message}) present(TranslationsEn t) {
     return switch (this) {
+      // Конфликт VPN-интерфейса: активно другое VPN-приложение (Android даёт
+      // только одному) или отозвано разрешение. Показываем понятное сообщение
+      // вместо сырого "configure tun interface: permission denied".
+      UnexpectedConnectionFailure(:final error)
+          when error != null &&
+              ("$error".contains("permission denied") || "$error".contains("configure tun interface")) => (
+        type: 'Не удалось включить VPN',
+        message:
+            'Возможно, активно другое VPN-приложение — Android разрешает работу только одного. '
+            'Отключите другой VPN (или дайте разрешение на подключение) и попробуйте снова.',
+      ),
       UnexpectedConnectionFailure(:final error) when error != null => (
         type: t.errors.connectivity.unexpected,
         message: "$error",
