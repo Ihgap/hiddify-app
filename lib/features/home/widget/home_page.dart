@@ -120,23 +120,26 @@ class HomePage extends HookConsumerWidget {
                           ),
                           _ => const Text(""),
                         },
-                        const SliverFillRemaining(
+                        SliverFillRemaining(
                           hasScrollBody: false,
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [ConnectionButton(), ActiveProxyDelayIndicator()],
+                          child: SafeArea(
+                            top: false,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: const [
+                                Expanded(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [ConnectionButton(), ActiveProxyDelayIndicator()],
+                                  ),
                                 ),
-                              ),
-                              ActiveProxyFooter(),
-                              Gap(8),
-                              ForeignOnlyToggle(),
-                              Gap(12),
-                            ],
+                                ActiveProxyFooter(),
+                                Gap(8),
+                                ForeignOnlyToggle(),
+                                Gap(12),
+                              ],
+                            ),
                           ),
                         ),
                       ],

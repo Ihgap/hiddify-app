@@ -387,7 +387,22 @@ class BoxService(
         // START_STICKY: если систему/прошивку убьёт службу — Android попытается её
         // перезапустить (intent == null). Так VPN восстанавливается сам, без захода
         // в приложение.
-        if (status.value != Status.Stopped) return Service.START_STICKY
+        if (status.value != Status.Stopped) {
+            // Сервис уже запущен. Если VPN был на паузе, а Flutter инициирует
+            // подключение — сбрасываем состояние паузы (маркер-файл + уведомление),
+            // иначе уведомление навсегда застрянет на «Пауза».
+            if (pausedMarkerFile().exists()) {
+                setPausedMarker(false)
+                GlobalScope.launch(Dispatchers.Main) { notification.setPaused(false) }
+                // Перезапускаем polling скорости/аутбаунда: ядро ещё не поднялось
+                // (Flutter стартует его после onStartCommand), поэтому ждём.
+                GlobalScope.launch(Dispatchers.IO) {
+                    delay(3_000L)
+                    notification.start()
+                }
+            }
+            return Service.START_STICKY
+        }
         status.value = Status.Starting
 
         if (!receiverRegistered) {

@@ -242,24 +242,34 @@ class ServiceNotification(private val status: MutableLiveData<Status>, private v
             Log.d("notification", "startListenSystemInfo-launch")
 
             val coreClient = GrpcClientProvider.grpcClient.create(CoreClient::class)
+            var retries = 0
+            val maxRetries = 10
 
-            try {
-                var previous = coreClient.GetSystemInfo().executeBlocking(Empty())
+            while (isActive) {
+                try {
+                    var previous = coreClient.GetSystemInfo().executeBlocking(Empty())
+                    retries = 0
 
-                while (isActive) {
-                    delay(1_000) // ✅ coroutine-friendly
-                    val current = coreClient.GetSystemInfo().executeBlocking(Empty())
-                    updateStatus(previous,current)
-                    previous = current
+                    while (isActive) {
+                        delay(1_000)
+                        val current = coreClient.GetSystemInfo().executeBlocking(Empty())
+                        updateStatus(previous, current)
+                        previous = current
+                    }
+                } catch (e: CancellationException) {
+                    Log.d("notification", "SystemInfo polling cancelled")
+                    if (!paused) notification.cancel(notificationId)
+                    return@launch
+                } catch (e: Exception) {
+                    retries++
+                    if (retries > maxRetries) {
+                        Log.e("notification", "SystemInfo polling failed after $maxRetries retries", e)
+                        if (!paused) notification.cancel(notificationId)
+                        return@launch
+                    }
+                    Log.d("notification", "SystemInfo polling error, retry $retries/$maxRetries", e)
+                    delay(2_000)
                 }
-            } catch (e: CancellationException) {
-                // coroutine cancelled normally
-                Log.d("notification", "SystemInfo polling cancelled")
-                // На паузе уведомление должно остаться (с кнопкой «Возобновить»).
-                if (!paused) notification.cancel(notificationId)
-            } catch (e: Exception) {
-                Log.e("notification", "SystemInfo polling failed", e)
-                if (!paused) notification.cancel(notificationId)
             }
         }
     }
