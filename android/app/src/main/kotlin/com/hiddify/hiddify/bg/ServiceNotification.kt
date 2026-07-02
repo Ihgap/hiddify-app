@@ -144,6 +144,7 @@ class ServiceNotification(private val status: MutableLiveData<Status>, private v
     }
 
     fun show(profileName: String, @StringRes contentTextId: Int) {
+        paused = false
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             // IMPORTANCE_DEFAULT → уведомление в ВЕРХНЕЙ части шторки (а не в
             // «Без звука», как при IMPORTANCE_LOW). Звук/вибрацию отключаем,
