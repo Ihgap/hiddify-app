@@ -95,6 +95,7 @@ class ConnectionNotifier extends _$ConnectionNotifier with AppLogger {
         case Disconnected():
           _userInitiatedConnect = true;
           await haptic.lightImpact();
+          state = const AsyncData(Connecting());
           await ref.read(Preferences.startedByUser.notifier).update(true);
           await _connect();
         case Connected():

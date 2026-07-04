@@ -46,19 +46,34 @@ Future<void> saveForeignRouting(Ref ref, Map<String, dynamic> routing) async {
   ref.read(foreignRoutingProvider.notifier).state = routing;
 }
 
-/// Строит route-правило (proto) из серверного описания.
-Rule foreignRoutingRule(Map<String, dynamic> r, int listOrder) {
+/// Строит route-правила (proto) из серверного описания.
+/// Возвращает список: сначала proxy-правило (если есть proxy_domain_suffixes),
+/// затем основное direct-правило. Порядок важен — proxy проверяется первым,
+/// чтобы Google/YouTube не попали в geoip-ru → direct.
+List<Rule> foreignRoutingRules(Map<String, dynamic> r, int startOrder) {
+  final rules = <Rule>[];
+  final proxyDomains = (r['proxy_domain_suffixes'] as List?)?.map((e) => '$e');
+  if (proxyDomains != null && proxyDomains.isNotEmpty) {
+    rules.add(Rule(
+      listOrder: startOrder,
+      enabled: true,
+      name: 'Proxy override',
+      outbound: Outbound.proxy,
+      domainSuffixes: proxyDomains,
+    ));
+  }
   final outbound = switch ((r['outbound'] as String?) ?? 'direct') {
     'proxy' => Outbound.proxy,
     'block' => Outbound.block,
     _ => Outbound.direct,
   };
-  return Rule(
-    listOrder: listOrder,
+  rules.add(Rule(
+    listOrder: startOrder + rules.length,
     enabled: true,
     name: (r['name'] as String?) ?? 'РФ напрямую',
     outbound: outbound,
     domainSuffixes: ((r['domain_suffixes'] as List?) ?? const []).map((e) => '$e'),
     ruleSets: ((r['rule_sets'] as List?) ?? const []).map((e) => '$e'),
-  );
+  ));
+  return rules;
 }

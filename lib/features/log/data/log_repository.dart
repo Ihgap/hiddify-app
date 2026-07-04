@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:hiddify/core/utils/exception_handler.dart';
@@ -44,13 +46,28 @@ class LogRepositoryImpl with ExceptionHandler, InfraLogger implements LogReposit
 
   @override
   Stream<Either<LogFailure, List<LogEntity>>> watchLogs() {
-    return singbox
+    // Логи движка sing-box приходят штатно через gRPC-стрим: в ядре снят guard
+    // `if s.debug` (started_service.go), поэтому движок отдаёт соединения/DNS/
+    // маршрутизацию/ошибки в logObserver, который слушает этот стрим. Прежний
+    // костыль с опросом файла data/box.log каждые 2 сек убран — он давал дубли
+    // и задержку. Уровень детализации задаёт движок (logLevel = info).
+    final logs = <LogEntity>[];
+    final controller = StreamController<Either<LogFailure, List<LogEntity>>>();
+
+    final grpcSub = singbox
         .watchLogs(logPathResolver.coreFile().path)
-        .map((event) => event.map(LogParser.parseLogProto).toList())
-        .handleExceptions((error, stackTrace) {
-          loggy.warning("error watching logs", error, stackTrace);
-          return LogFailure.unexpected(error, stackTrace);
-        });
+        .listen(
+          (grpcMessages) {
+            logs.addAll(grpcMessages.map(LogParser.parseLogProto));
+            if (logs.length > 500) logs.removeRange(0, logs.length - 500);
+            controller.add(right(List.of(logs)));
+          },
+          onError: (e) => loggy.warning("gRPC log stream error: $e"),
+        );
+
+    controller.onCancel = grpcSub.cancel;
+
+    return controller.stream;
   }
 
   @override

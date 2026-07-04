@@ -53,10 +53,25 @@ abstract class ConfigOptions {
 
   static final resolveDestination = PreferencesNotifier.create<bool, bool>("resolve-destination", false);
 
-  // Режим совместимости (по умолчанию OFF): возвращает СТАРЫЙ стек TUN (gVisor)
-  // вместо нового дефолтного system. Для редких устройств, где system даёт сбои.
-  // Большинству не нужен.
-  static final compatibilityMode = PreferencesNotifier.create<bool, bool>("compatibility-mode", false);
+  // Режим совместимости (по умолчанию ON): gVisor TUN вместо system.
+  // system-стек ломает маршрутизацию на ряде устройств.
+  static final compatibilityMode = PreferencesNotifier.create<bool, bool>("compatibility-mode", true);
+
+  // Быстрый режим (по умолчанию OFF): mixed TUN-стек — TCP через ядро (скорость
+  // system), UDP через gVisor (совместимость). Компромисс между скоростью и
+  // надёжностью. Взаимоисключающий с compatibilityMode (см. general_page.dart и
+  // resolveTunStack ниже): нельзя включить обе галочки одновременно.
+  static final fastMode = PreferencesNotifier.create<bool, bool>("fast-mode", false);
+
+  // Выбор TUN-стека по двум галочкам:
+  //   Режим совместимости ON  → gvisor (userspace, самый совместимый, медленнее)
+  //   Быстрый режим ON        → mixed  (TCP ядро + UDP gvisor)
+  //   обе OFF                 → system (ядро, максимально быстро, но device-specific)
+  static TunImplementation resolveTunStack({required bool compatibility, required bool fast}) {
+    if (compatibility) return TunImplementation.gvisor;
+    if (fast) return TunImplementation.mixed;
+    return TunImplementation.system;
+  }
 
   static final ipv6Mode = PreferencesNotifier.create<IPv6Mode, String>(
     "ipv6-mode",
@@ -481,14 +496,24 @@ abstract class ConfigOptions {
     final foreignRouting = ref.watch(foreignRoutingProvider);
     final foreignName = (foreignRouting['name'] as String?) ?? 'РФ напрямую';
     final routeRules = <Rule>[
-      ...ref.watch(rulesNotifierProvider).where((r) => r.name != foreignName),
+      ...ref.watch(rulesNotifierProvider).where((r) => r.name != foreignName && r.name != 'Proxy override'),
     ];
     if (regionRu) {
-      routeRules.add(foreignRoutingRule(foreignRouting, routeRules.length));
+      routeRules.addAll(foreignRoutingRules(foreignRouting, routeRules.length));
     }
     final directDns = (regionRu && foreignRouting['direct_dns'] is String)
         ? foreignRouting['direct_dns'] as String
         : ref.watch(directDnsAddress);
+
+    // Стек TUN определяется двумя галочками (см. resolveTunStack). Из него же
+    // выводим MTU: у system-стека MTU 9000 на части устройств рвёт большие
+    // пакеты (TLS Яндекса, IPv6 Telegram) — для него берём безопасные 1500.
+    // gvisor/mixed обрабатывают крупные пакеты в userspace, им 9000 даёт прирост.
+    final tunStack = resolveTunStack(
+      compatibility: ref.watch(compatibilityMode),
+      fast: ref.watch(fastMode),
+    );
+    final tunMtu = tunStack == TunImplementation.system ? 1500 : ref.watch(mtu);
 
     return SingboxConfigOption(
       region: ref.watch(region).name,
@@ -507,10 +532,9 @@ abstract class ConfigOptions {
       tproxyPort: ref.watch(tproxyPort),
       directPort: ref.watch(directPort),
       redirectPort: ref.watch(redirectPort),
-      // Дефолт — system (ядро). «Режим совместимости» возвращает gVisor для
-      // редких устройств, где system не подходит.
-      tunImplementation: ref.watch(compatibilityMode) ? TunImplementation.gvisor : ref.watch(tunImplementation),
-      mtu: ref.watch(mtu),
+      // Стек выбирается двумя галочками (resolveTunStack): gvisor / mixed / system.
+      tunImplementation: tunStack,
+      mtu: tunMtu,
       strictRoute: ref.watch(strictRoute),
       connectionTestUrl: ref.watch(connectionTestUrl),
       urlTestInterval: ref.watch(urlTestInterval),

@@ -50,14 +50,11 @@ class LogsPage extends HookConsumerWidget with PresLogger {
       );
     }
 
-    // Детальные логи sing-box (подключения/маршрут/DNS) идут в stderr.log
-    // (Libbox.redirectStderr), а НЕ в gRPC-поток (там только STARTING/STARTED).
-    // Поэтому «логи ядра» = stderr.log напрямую; если его нет — дамп из памяти.
     Future<void> shareCoreLog() async {
-      final stderr = File(p.join(pathResolver.directory.path, 'stderr.log'));
-      if (stderr.existsSync() && await stderr.length() > 0) {
+      final boxLog = File(p.join(pathResolver.directory.path, 'data', 'box.log'));
+      if (boxLog.existsSync() && await boxLog.length() > 0) {
         await UriUtils.tryShareOrLaunchFile(
-          Uri.parse(stderr.path),
+          Uri.parse(boxLog.path),
           fileOrDir: pathResolver.directory.uri,
           mimeType: 'text/plain',
         );

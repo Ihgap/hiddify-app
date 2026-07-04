@@ -25,7 +25,7 @@ class ForeignOnlyToggle extends ConsumerWidget {
       // приходит с сервера и инжектится в конфиг, а не хранится в файле).
       final notifier = ref.read(rulesNotifierProvider.notifier);
       final foreignName = (ref.read(foreignRoutingProvider)['name'] as String?) ?? 'РФ напрямую';
-      final stale = ref.read(rulesNotifierProvider).where((r) => r.name == foreignName).toList();
+      final stale = ref.read(rulesNotifierProvider).where((r) => r.name == foreignName || r.name == 'Proxy override').toList();
       for (final r in stale) {
         await notifier.deleteRule(r.listOrder);
       }

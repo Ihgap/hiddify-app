@@ -22,6 +22,34 @@ class GeneralPage extends HookConsumerWidget {
       appBar: AppBar(title: Text(t.pages.settings.general.title)),
       body: ListView(
         children: [
+          // Режим совместимости и Быстрый режим — взаимоисключающие: включение
+          // одного автоматически отжимает другой (нельзя держать обе галочки).
+          SwitchListTile.adaptive(
+            title: const Text('Режим совместимости'),
+            subtitle: const Text(
+              'Выключите, если есть проблемы с открытием каких-то сайтов/приложений. '
+              'Если не помогло, обратитесь в техническую поддержку.',
+            ),
+            secondary: const Icon(Icons.healing_rounded),
+            value: ref.watch(ConfigOptions.compatibilityMode),
+            onChanged: (value) async {
+              await ref.read(ConfigOptions.compatibilityMode.notifier).update(value);
+              if (value) await ref.read(ConfigOptions.fastMode.notifier).update(false);
+            },
+          ),
+          SwitchListTile.adaptive(
+            title: const Text('Быстрый режим'),
+            subtitle: const Text(
+              'Ускоряет VPN. Если появятся проблемы с открытием сайтов/приложений — '
+              'выключите или включите «Режим совместимости».',
+            ),
+            secondary: const Icon(Icons.rocket_launch_rounded),
+            value: ref.watch(ConfigOptions.fastMode),
+            onChanged: (value) async {
+              await ref.read(ConfigOptions.fastMode.notifier).update(value);
+              if (value) await ref.read(ConfigOptions.compatibilityMode.notifier).update(false);
+            },
+          ),
           const LocalePrefTile(),
           const ThemeModePrefTile(),
           if (PlatformUtils.isAndroid) ...[
@@ -63,19 +91,6 @@ class GeneralPage extends HookConsumerWidget {
             secondary: const Icon(Icons.memory_rounded),
             value: !ref.watch(Preferences.disableMemoryLimit),
             onChanged: (value) async => await ref.read(Preferences.disableMemoryLimit.notifier).update(!value),
-          ),
-          // Режим совместимости: возвращает старый сетевой стек (gVisor) вместо
-          // нового дефолтного (system). Нужен редким устройствам, где на новом
-          // стеке есть проблемы с подключением. После изменения — переподключить VPN.
-          SwitchListTile.adaptive(
-            title: const Text('Режим совместимости'),
-            subtitle: const Text(
-              'Включите, если после обновления появились проблемы с подключением к сайтам. '
-              'После изменения переподключите VPN.',
-            ),
-            secondary: const Icon(Icons.healing_rounded),
-            value: ref.watch(ConfigOptions.compatibilityMode),
-            onChanged: ref.read(ConfigOptions.compatibilityMode.notifier).update,
           ),
           ListTile(
             title: Text(t.pages.settings.general.urlTestInterval),
