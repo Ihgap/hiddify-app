@@ -2,6 +2,10 @@
 # Keystore & secrets (never commit!)
 KEYSTORE_CREDENTIALS.txt
 
+# graphify — сгенерированный граф знаний, в git не нужен
+graphify-out
+.graphifyignore
+
 # Miscellaneous
 *.class
 *.log
