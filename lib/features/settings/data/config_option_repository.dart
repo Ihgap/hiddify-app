@@ -51,16 +51,24 @@ abstract class ConfigOptions {
     mapTo: (value) => value.name,
   );
 
+  // Логи ядра по умолчанию ВЫКЛЮЧЕНЫ ради экономии батареи. sing-box пишет
+  // box.log на уровне [logLevel] (info) — строка на каждое соединение/DNS-запрос,
+  // то есть постоянная запись на диск + работа CPU, не дающая устройству спать.
+  // Когда выключено, в ядро уходит уровень `panic` (тишина). Включается вручную
+  // переключателем в настройках для диагностики — с пометкой о расходе заряда.
+  static final enableLogs = PreferencesNotifier.create<bool, bool>("enable-logs", false);
+
   static final resolveDestination = PreferencesNotifier.create<bool, bool>("resolve-destination", false);
 
-  // Режим совместимости (по умолчанию ON): gVisor TUN вместо system.
-  // system-стек ломает маршрутизацию на ряде устройств.
+  // Режим совместимости (по умолчанию ON): gVisor TUN вместо system — самый
+  // совместимый стек, реже проблемы с открытием сайтов/приложений. Выключается
+  // вручную (через «Быстрый режим»), если пользователю нужна максимальная скорость.
   static final compatibilityMode = PreferencesNotifier.create<bool, bool>("compatibility-mode", true);
 
   // Быстрый режим (по умолчанию OFF): mixed TUN-стек — TCP через ядро (скорость
   // system), UDP через gVisor (совместимость). Компромисс между скоростью и
   // надёжностью. Взаимоисключающий с compatibilityMode (см. general_page.dart и
-  // resolveTunStack ниже): нельзя включить обе галочки одновременно.
+  // resolveTunStack ниже): нельзя включить обе одновременно.
   static final fastMode = PreferencesNotifier.create<bool, bool>("fast-mode", false);
 
   // Выбор TUN-стека по двум галочкам:
@@ -521,7 +529,8 @@ abstract class ConfigOptions {
       // blockAds: ref.watch(blockAds),
       useXrayCoreWhenPossible: ref.watch(useXrayCoreWhenPossible),
       executeConfigAsIs: false,
-      logLevel: ref.watch(logLevel),
+      // Логи выключены → panic (ядро почти ничего не пишет, экономим батарею).
+      logLevel: ref.watch(enableLogs) ? ref.watch(logLevel) : LogLevel.panic,
       resolveDestination: ref.watch(resolveDestination),
       ipv6Mode: ref.watch(ipv6Mode),
       remoteDnsAddress: ref.watch(remoteDnsAddress),

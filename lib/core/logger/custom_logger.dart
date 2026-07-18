@@ -44,12 +44,25 @@ class ConsolePrinter extends LoggyPrinter {
 }
 
 class FileLogPrinter extends LoggyPrinter {
-  FileLogPrinter(String filePath, {this.minLevel = LogLevel.debug}) : _logFile = File(filePath);
+  FileLogPrinter(String filePath, {this.minLevel = LogLevel.debug, this.maxSizeBytes = 10 * 1024 * 1024})
+      : _logFile = File(filePath) {
+    _truncateIfNeeded();
+  }
 
   final File _logFile;
   final LogLevel minLevel;
+  final int maxSizeBytes;
+  int _lineCount = 0;
 
-  late final _sink = _logFile.openWrite(mode: FileMode.writeOnly);
+  late IOSink _sink = _logFile.openWrite(mode: FileMode.writeOnly);
+
+  void _truncateIfNeeded() {
+    try {
+      if (_logFile.existsSync() && _logFile.lengthSync() > maxSizeBytes) {
+        _logFile.writeAsStringSync('');
+      }
+    } catch (_) {}
+  }
 
   @override
   void onLog(LogRecord record) {
@@ -61,6 +74,20 @@ class FileLogPrinter extends LoggyPrinter {
     if (record.stackTrace != null) {
       _sink.writeln(record.stackTrace);
     }
+    _lineCount++;
+    if (_lineCount % 1000 == 0) {
+      _checkSize();
+    }
+  }
+
+  void _checkSize() {
+    try {
+      if (_logFile.existsSync() && _logFile.lengthSync() > maxSizeBytes) {
+        _sink.close();
+        _logFile.writeAsStringSync('--- log rotated ---\n');
+        _sink = _logFile.openWrite(mode: FileMode.append);
+      }
+    } catch (_) {}
   }
 
   void dispose() {

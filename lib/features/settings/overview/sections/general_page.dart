@@ -40,8 +40,8 @@ class GeneralPage extends HookConsumerWidget {
           SwitchListTile.adaptive(
             title: const Text('Быстрый режим'),
             subtitle: const Text(
-              'Ускоряет VPN. Если появятся проблемы с открытием сайтов/приложений — '
-              'выключите или включите «Режим совместимости».',
+              'Ускоряет VPN. Если появились проблемы с открытием сайтов/приложений — '
+              'используйте «Режим совместимости».',
             ),
             secondary: const Icon(Icons.rocket_launch_rounded),
             value: ref.watch(ConfigOptions.fastMode),
@@ -85,6 +85,17 @@ class GeneralPage extends HookConsumerWidget {
             ),
           ],
           if (PlatformUtils.isAndroid) const BatteryOptimizationWidget(),
+          SwitchListTile.adaptive(
+            title: const Text('Логи'),
+            subtitle: const Text(
+              'По умолчанию выключены ради экономии заряда. Включайте только для '
+              'диагностики: запись логов заметно расходует батарею. Изменение '
+              'применится после переподключения VPN.',
+            ),
+            secondary: const Icon(Icons.article_rounded),
+            value: ref.watch(ConfigOptions.enableLogs),
+            onChanged: (value) async => await ref.read(ConfigOptions.enableLogs.notifier).update(value),
+          ),
           SwitchListTile.adaptive(
             title: Text(t.pages.settings.general.memoryLimit),
             subtitle: Text(t.pages.settings.general.memoryLimitMsg),

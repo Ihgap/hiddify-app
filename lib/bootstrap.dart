@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -45,6 +46,7 @@ Future<void> lazyBootstrap(WidgetsBinding widgetsBinding, Environment env) async
 
   await _init("directories", () => container.read(appDirectoriesProvider.future));
   LoggerController.init(container.read(logPathResolverProvider).appFile().path);
+  _truncateOversizedLog(container.read(logPathResolverProvider).coreFile());
 
   final appInfo = await _init("app info", () => container.read(appInfoProvider.future));
   await _init("preferences", () => container.read(sharedPreferencesProvider.future));
@@ -160,4 +162,12 @@ Future<T?> _safeInit<T>(String name, Future<T> Function() initializer, {int? tim
   } catch (e) {
     return null;
   }
+}
+
+void _truncateOversizedLog(File file, {int maxBytes = 10 * 1024 * 1024}) {
+  try {
+    if (file.existsSync() && file.lengthSync() > maxBytes) {
+      file.writeAsStringSync('');
+    }
+  } catch (_) {}
 }

@@ -4,12 +4,14 @@ import 'package:hiddify/core/haptic/haptic_service.dart';
 import 'package:hiddify/core/localization/translations.dart';
 import 'package:hiddify/core/preferences/general_preferences.dart';
 import 'package:hiddify/core/router/dialog/dialog_notifier.dart';
+import 'package:hiddify/core/directories/directories_provider.dart';
 import 'package:hiddify/features/connection/data/connection_data_providers.dart';
 import 'package:hiddify/features/connection/data/connection_repository.dart';
 import 'package:hiddify/features/connection/model/connection_failure.dart';
 import 'package:hiddify/features/connection/model/connection_status.dart';
 import 'package:hiddify/features/profile/model/profile_entity.dart';
 import 'package:hiddify/features/profile/notifier/active_profile_notifier.dart';
+import 'package:path/path.dart' as p;
 import 'package:hiddify/hiddifycore/init_signal.dart';
 import 'package:hiddify/utils/utils.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -28,9 +30,15 @@ class ConnectionNotifier extends _$ConnectionNotifier with AppLogger {
   /// без действия пользователя).
   bool _userInitiatedConnect = false;
 
+  /// true пока ждём, что нативный стрим подтвердит Connecting/Connected после
+  /// того, как пользователь нажал «Подключить». Подавляет транзиентный
+  /// Disconnected, который ядро может выдать при рестарте (особенно из паузы).
+  bool _awaitingConnect = false;
+
   @override
   Stream<ConnectionStatus> build() async* {
     _userInitiatedConnect = false;
+    _awaitingConnect = false;
 
     if (Platform.isIOS) {
       await _connectionRepo.setup().mapLeft((l) {
@@ -69,7 +77,19 @@ class ConnectionNotifier extends _$ConnectionNotifier with AppLogger {
     });
     ref.watch(coreRestartSignalProvider);
 
-    yield* _connectionRepo.watchConnectionStatus().doOnData((event) {
+    yield* _connectionRepo.watchConnectionStatus().map((event) {
+      if (_awaitingConnect) {
+        if (event is Connecting || event is Connected) {
+          _awaitingConnect = false;
+        } else if (event is Disconnected && event.connectionFailure != null) {
+          _awaitingConnect = false;
+        } else if (event is Disconnected) {
+          loggy.debug("suppressing transient Disconnected after user-initiated connect");
+          return const Connecting();
+        }
+      }
+      return event;
+    }).doOnData((event) {
       if (event case Disconnected(connectionFailure: final _?) when PlatformUtils.isDesktop) {
         Future.microtask(() => ref.read(Preferences.startedByUser.notifier).update(false));
       }
@@ -94,6 +114,8 @@ class ConnectionNotifier extends _$ConnectionNotifier with AppLogger {
       switch (value) {
         case Disconnected():
           _userInitiatedConnect = true;
+          _awaitingConnect = true;
+          _deletePausedMarker();
           await haptic.lightImpact();
           state = const AsyncData(Connecting());
           await ref.read(Preferences.startedByUser.notifier).update(true);
@@ -182,6 +204,15 @@ class ConnectionNotifier extends _$ConnectionNotifier with AppLogger {
           .showCustomAlertFromErr(err.present(ref.read(translationsProvider).requireValue));
       state = AsyncError(err, StackTrace.current);
     }).run();
+  }
+
+  void _deletePausedMarker() {
+    try {
+      final dirs = ref.read(appDirectoriesProvider).valueOrNull;
+      if (dirs == null) return;
+      final f = File(p.join(dirs.baseDir.path, 'paused.flag'));
+      if (f.existsSync()) f.deleteSync();
+    } catch (_) {}
   }
 }
 
