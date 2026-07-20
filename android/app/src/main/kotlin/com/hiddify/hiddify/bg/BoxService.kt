@@ -170,6 +170,16 @@ class BoxService(
 
             DefaultNetworkMonitor.start()
             Libbox.setMemoryLimit(!Settings.disableMemoryLimit)
+            // Защита от «createService - null»: если процесс убили при долгой
+            // неактивности, а сервис возродился через START_STICKY (или ядро осталось
+            // полу-живым), gRPC-порт ядра (19079) ещё занят прежним экземпляром —
+            // тогда Mobile.setup() ниже бросает исключение с message=null. Гасим ядро
+            // перед setup, как это уже делает resumeService. На чистом старте — no-op.
+            try {
+                Mobile.close(4L)
+            } catch (e: Exception) {
+                Log.w(TAG, "pre-setup Mobile.close failed (ok on clean start)", e)
+            }
             val newService = try {
                 Mobile.setup(
                     SetupOptions().also {
