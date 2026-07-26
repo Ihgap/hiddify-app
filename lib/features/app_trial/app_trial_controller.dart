@@ -11,7 +11,11 @@ import 'package:hiddify/features/profile/model/profile_sort_enum.dart';
 import 'package:hiddify/features/settings/data/server_routing.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-void _log(String msg) => debugPrint('APP_TRIAL: $msg');
+// Только в debug: sub_url и прочие детали подписки — это bearer-доступ к
+// VPN-ключам, а debugPrint в release пишет их в системный лог устройства.
+void _log(String msg) {
+  if (kDebugMode) debugPrint('APP_TRIAL: $msg');
+}
 
 /// Ключ в SharedPreferences: id профиля, которым управляет автоподписка.
 /// Нужен, чтобы не плодить дубли и знать, что мигрировать после привязки.
@@ -40,7 +44,7 @@ final subscriptionSyncProvider = FutureProvider<AppTrialResult?>((ref) async {
   final AppTrialResult result;
   try {
     result = await AppTrialService().activate(deviceId);
-    _log('activate ok: status=${result.status} linked=${result.linked} sub=${result.subUrl}');
+    _log('activate ok: status=${result.status} linked=${result.linked}');
   } catch (e) {
     _log('activate FAILED: $e');
     return null;
