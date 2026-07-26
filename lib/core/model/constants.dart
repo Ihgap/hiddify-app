@@ -4,11 +4,13 @@ import 'package:hiddify/utils/utils.dart';
 
 abstract class Constants {
   static const appName = "TuTu4kA VPN";
-  static const githubUrl = "https://github.com/hiddify/hiddify-next";
+  static const githubUrl = "https://github.com/Ihgap/hiddify-app";
   static const licenseUrl = "https://github.com/hiddify/hiddify-next?tab=License-1-ov-file#readme";
-  static const githubReleasesApiUrl = "https://api.github.com/repos/hiddify/hiddify-next/releases";
-  static const githubLatestReleaseUrl = "https://github.com/hiddify/hiddify-app/releases/latest";
-  static const appCastUrl = "https://raw.githubusercontent.com/hiddify/hiddify-next/main/appcast.xml";
+  static const githubReleasesApiUrl = "https://api.github.com/repos/Ihgap/hiddify-app/releases";
+  static const githubLatestReleaseUrl = "https://github.com/Ihgap/hiddify-app/releases/latest";
+  // Appcast хостится на нашем сервере (не GitHub): доступен из РФ, и ссылка
+  // на установщик в нём ведёт на наш же файл.
+  static const appCastUrl = "https://ihgap.xyz/appcast.xml";
   static const telegramChannelUrl = "https://t.me/hiddify";
   static const privacyPolicyUrl = "https://hiddify.com/privacy-policy/";
   static const termsAndConditionsUrl = "https://hiddify.com/terms/";
