@@ -35,9 +35,9 @@ const _managedProfileKey = 'app_managed_profile_id';
 final subscriptionSyncProvider = FutureProvider<AppTrialResult?>((ref) async {
   _log('sync started');
 
-  final deviceId = await DeviceIdentity.androidId();
+  final deviceId = await DeviceIdentity.deviceId();
   if (deviceId == null) {
-    _log('no androidId');
+    _log('no deviceId');
     return null;
   }
 
