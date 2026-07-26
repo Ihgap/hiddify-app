@@ -1,12 +1,12 @@
-display_name: Hiddify
-publisher_display_name: Hiddify
-identity_name: Hiddify.HiddifyNext
+display_name: TuTu4kA VPN
+publisher_display_name: Ihgap
+identity_name: Ihgap.TuTu4kAVPN
 msix_version: 4.1.2.0
 logo_path: windows\runner\resources\app_icon.ico
 capabilities: internetClient, internetClientServer, privateNetworkClientServer
-languages: ar, en-us, es-es, fa-ir, fr-fr, id-id, pt-br, ru-ru, tr-tr, zh-cn, zh-tw
-protocol_activation: hiddify, v2ray, v2rayn, v2rayng, clash, clashmeta, sing-box
-execution_alias: hiddify
+languages: en-us, ru-ru
+protocol_activation: hiddify
+execution_alias: tutu4ka
 certificate_path: windows\sign.pfx
 certificate_password:
 publisher: CN=8CB43675-F44B-4AA5-9372-E8727781BDC4
