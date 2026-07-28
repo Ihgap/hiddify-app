@@ -45,6 +45,11 @@ final offlineServersProvider = FutureProvider.autoDispose<List<String>>((ref) as
   return names;
 });
 
+/// Убирает служебные метки (§reserve§, §hide§, …) из отображаемого имени —
+/// как _sanitizedTag в proxy_entity и TrimTagName в ядре. offlineServersProvider
+/// отдаёт сырые имена (метка нужна ShutdownFailover), поэтому чистим в UI/выборе.
+String _stripTagMarks(String tag) => tag.replaceFirst(RegExp(r"\§[^]*"), "").trimRight();
+
 /// Read-only список серверов, когда VPN отключён (ядро не запущено).
 /// Выбор сервера и пинг доступны только при подключении — это ограничение
 /// движка sing-box.
@@ -111,12 +116,17 @@ class OfflineServerList extends ConsumerWidget {
                   onTap: () => connect('lowest', 'Автоматически'),
                 );
               }
-              final name = names[index - 1];
+              // name — сырой tag из подписки (у резерва несёт §reserve§).
+              // Показываем и выбираем без метки: connect кладёт имя в
+              // pendingServerSelectionProvider, где App матчит по tagDisplay
+              // (тоже без метки), иначе резерв вручную не выбрался бы.
+              final rawName = names[index - 1];
+              final display = _stripTagMarks(rawName);
               return ListTile(
-                leading: IPCountryFlag(countryCode: countryCodeFromFlagEmoji(name), size: 40),
-                title: Text(name, overflow: TextOverflow.ellipsis),
+                leading: IPCountryFlag(countryCode: countryCodeFromFlagEmoji(display), size: 40),
+                title: Text(display, overflow: TextOverflow.ellipsis),
                 trailing: const Icon(Icons.power_settings_new_rounded, size: 20),
-                onTap: () => connect(name, name),
+                onTap: () => connect(display, display),
               );
             },
           ),
