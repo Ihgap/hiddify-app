@@ -36,6 +36,7 @@ class ShutdownFailover with InfraLogger {
   DateTime? _connectingSince;
   final Set<String> _tried = {};
   int _deadStreak = 0;
+  DateTime? _lastForcedTest;
   bool _busy = false;
 
   Future<void> tick(WidgetRef ref) async {
@@ -150,6 +151,17 @@ class ShutdownFailover with InfraLogger {
         await notifier.changeProxy(group.tag, back.tag);
       }
     }
-    await notifier.urlTest(group.tag);
+    // Свежий url-test форсим ТОЛЬКО при подозрении на обрыв (не на резерве и
+    // хотя бы один обычный не отвечает) и не чаще раза в 15с. Безусловный
+    // форс каждый тик заставлял url-test-группу «Авто» переизбирать лучший
+    // сервер каждые 5с → видимые перескоки. При штатной работе (все живы)
+    // форса нет; периодический автотест группы делает само ядро.
+    if (!onReserve && reserveAlive && normals.any((e) => _dead(e.urlTestDelay))) {
+      final now = DateTime.now();
+      if (_lastForcedTest == null || now.difference(_lastForcedTest!).inSeconds >= 15) {
+        _lastForcedTest = now;
+        await notifier.urlTest(group.tag);
+      }
+    }
   }
 }
