@@ -348,11 +348,11 @@ class ProfileSubscriptionInfo extends HookConsumerWidget {
           textDirection: TextDirection.ltr,
           child: Flexible(
             child: Text(
-              subInfo.total >
-                      10 *
-                          1099511627776 //10TB
+              // Обычный трафик безлимитен — показываем только остаток «по спискам»
+              // (лимит резервного Clearway-ключа; total приходит из userinfo).
+              subInfo.total <= 0 || subInfo.total > 10 * 1099511627776 // нет лимита/∞
                   ? "∞ GB"
-                  : subInfo.consumption.sizeOf(subInfo.total),
+                  : "Осталось ${(subInfo.remainingBW < 0 ? 0 : subInfo.remainingBW).sizeGB()} по спискам",
               semanticsLabel: t.components.subscriptionInfo.remainingTrafficSemanticLabel(
                 consumed: subInfo.consumption.sizeGB(),
                 total: subInfo.total.sizeGB(),
