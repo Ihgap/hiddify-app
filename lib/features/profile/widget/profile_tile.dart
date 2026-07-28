@@ -13,10 +13,12 @@ import 'package:hiddify/core/router/dialog/dialog_notifier.dart';
 import 'package:hiddify/core/router/go_router/helper/active_breakpoint_notifier.dart';
 import 'package:hiddify/core/widget/adaptive_icon.dart';
 import 'package:hiddify/core/widget/adaptive_menu.dart';
+import 'package:hiddify/features/connection/model/connection_status.dart';
 import 'package:hiddify/features/connection/notifier/connection_notifier.dart';
 import 'package:hiddify/features/profile/model/profile_entity.dart';
 import 'package:hiddify/features/profile/notifier/profile_notifier.dart';
 import 'package:hiddify/features/profile/overview/profiles_notifier.dart';
+import 'package:hiddify/features/proxy/overview/proxies_overview_notifier.dart';
 import 'package:hiddify/gen/fonts.gen.dart';
 import 'package:hiddify/utils/utils.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -323,10 +325,12 @@ class ProfileSubscriptionInfo extends HookConsumerWidget {
 
   final SubscriptionInfo subInfo;
 
-  (String, Color?) remainingText(TranslationsEn t, ThemeData theme) {
+  (String, Color?) remainingText(TranslationsEn t, ThemeData theme, bool onReserve) {
     if (subInfo.isExpired) {
       return (t.components.subscriptionInfo.expired, theme.colorScheme.error);
-    } else if (subInfo.ratio >= 1) {
+    } else if (onReserve && subInfo.ratio >= 1) {
+      // «Трафик закончился» — только про лимит «по спискам»: на обычных серверах
+      // трафик безлимитный, исчерпание резерва не должно менять надпись о сроке.
       return (t.components.subscriptionInfo.noTraffic, theme.colorScheme.error);
     } else if (subInfo.remaining.inDays > 365) {
       return (t.components.subscriptionInfo.remainingDuration(duration: "∞"), null);
@@ -340,7 +344,15 @@ class ProfileSubscriptionInfo extends HookConsumerWidget {
     final t = ref.watch(translationsProvider).requireValue;
     final theme = Theme.of(context);
 
-    final remaining = remainingText(t, theme);
+    // Лимит «по спискам» показываем только когда активен резервный сервер
+    // (§reserve§): ограничен только его трафик, у остальных — безлимит.
+    final connection = ref.watch(connectionNotifierProvider).valueOrNull;
+    final group = ref.watch(proxiesOverviewNotifierProvider).valueOrNull;
+    final onReserve = connection is Connected &&
+        group != null &&
+        group.items.any((e) => e.tag.contains('§reserve§') && e.tag == group.selected);
+
+    final remaining = remainingText(t, theme, onReserve);
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -350,7 +362,7 @@ class ProfileSubscriptionInfo extends HookConsumerWidget {
             child: Text(
               // Обычный трафик безлимитен — показываем только остаток «по спискам»
               // (лимит резервного Clearway-ключа; total приходит из userinfo).
-              subInfo.total <= 0 || subInfo.total > 10 * 1099511627776 // нет лимита/∞
+              !onReserve || subInfo.total <= 0 || subInfo.total > 10 * 1099511627776
                   ? "∞ GB"
                   : "Осталось ${(subInfo.remainingBW < 0 ? 0 : subInfo.remainingBW).sizeGB()} по спискам",
               semanticsLabel: t.components.subscriptionInfo.remainingTrafficSemanticLabel(
