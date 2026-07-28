@@ -1,7 +1,7 @@
 name: hiddify
 description: Cross Platform Multi Protocol Proxy Frontend.
 publish_to: "none"
-version: 1.4.2+10042
+version: 1.4.7+10047
 
 environment:
   sdk: ^3.10.4
@@ -196,8 +196,10 @@ flutter_launcher_icons:
   adaptive_icon_background: "#FFFFFF"
   adaptive_icon_foreground: "assets/icon/foreground.png"
   min_sdk_android: 21
+  # windows: app_icon.ico генерится КРУГЛЫМ скриптом (см. память проекта),
+  # flutter_launcher_icons его затирал бы квадратным — выключено.
   windows:
-    generate: true
+    generate: false
     image_path: "assets/icon/icon.png"
     icon_size: 256
 

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:accessibility_tools/accessibility_tools.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/foundation.dart';
@@ -19,6 +21,7 @@ import 'package:hiddify/features/connection/notifier/connection_notifier.dart';
 import 'package:hiddify/features/connection/widget/connection_wrapper.dart';
 import 'package:hiddify/features/per_app_proxy/overview/per_app_proxy_service_notifier.dart';
 import 'package:hiddify/features/profile/notifier/profiles_update_notifier.dart';
+import 'package:hiddify/features/proxy/failover/shutdown_failover.dart';
 import 'package:hiddify/features/proxy/overview/offline_servers.dart';
 import 'package:hiddify/features/proxy/overview/proxies_overview_notifier.dart';
 import 'package:hiddify/features/shortcut/shortcut_wrapper.dart';
@@ -129,6 +132,19 @@ class App extends HookConsumerWidget with WidgetsBindingObserver, PresLogger {
       });
       return null;
     }, [activeBreakpoint]);
+
+    // Автопереключение на «резерв» при региональном отключении (whitelist):
+    // обычные серверы мертвы, а «резерв» жив → молча уходим на него; когда
+    // связь восстановилась → обратно на «Авто». Логика в ShutdownFailover.
+    useEffect(() {
+      final failover = ShutdownFailover();
+      final timer = Timer.periodic(
+        const Duration(seconds: 5),
+        (_) => failover.tick(ref),
+      );
+      return timer.cancel;
+    }, const []);
+
     return WindowWrapper(
       ShortcutWrapper(
         ToastificationWrapper(
