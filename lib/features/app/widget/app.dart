@@ -139,7 +139,7 @@ class App extends HookConsumerWidget with WidgetsBindingObserver, PresLogger {
     useEffect(() {
       final failover = ShutdownFailover();
       final timer = Timer.periodic(
-        const Duration(seconds: 5),
+        const Duration(seconds: 4),
         (_) => failover.tick(ref),
       );
       return timer.cancel;

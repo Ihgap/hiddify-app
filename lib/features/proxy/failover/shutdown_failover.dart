@@ -1,4 +1,5 @@
 import 'package:dartx/dartx.dart';
+import 'package:dio/dio.dart';
 import 'package:hiddify/features/connection/model/connection_status.dart';
 import 'package:hiddify/features/connection/notifier/connection_notifier.dart';
 import 'package:hiddify/features/proxy/overview/offline_servers.dart';
@@ -25,10 +26,21 @@ class ShutdownFailover with InfraLogger {
   static const _reserveMark = "§reserve§";
 
   /// Сколько ждать поднятия туннеля, прежде чем перебрать следующий сервер.
-  static const _connectTimeoutSec = 18;
+  static const _connectTimeoutSec = 12;
 
   /// Гистерезис для случая «Connected, но интернета нет».
   static const _deadStreakThreshold = 2;
+
+  /// Сколько разных обычных серверов подряд должны не встать, чтобы сразу
+  /// прыгнуть на резерв, не досматривая остаток списка (много падений = зона).
+  static const _normalsFailForReserve = 2;
+
+  /// Активная проба связи через туннель: URL, частота, порог провалов.
+  /// Проба идёт ЧЕРЕЗ активный (обычный) сервер за границей — если туннель жив,
+  /// generate_204 доступен; в зоне белых списков туннель мёртв → проба падает.
+  static const _probeUrl = "http://connectivitycheck.gstatic.com/generate_204";
+  static const _probeEverySec = 8;
+  static const _probeFailForDown = 2;
 
   static bool _dead(int d) => d <= 0 || d >= 60000;
   static bool _alive(int d) => d > 0 && d < 60000;
@@ -37,6 +49,8 @@ class ShutdownFailover with InfraLogger {
   final Set<String> _tried = {};
   int _deadStreak = 0;
   DateTime? _lastForcedTest;
+  DateTime? _lastProbe;
+  int _probeFailStreak = 0;
   bool _busy = false;
 
   Future<void> tick(WidgetRef ref) async {
@@ -86,7 +100,16 @@ class ShutdownFailover with InfraLogger {
       ...names.where((n) => !n.contains(_reserveMark)),
       ...names.where((n) => n.contains(_reserveMark)),
     ];
-    final next = ordered.firstOrNullWhere((n) => !_tried.contains(_sanitize(n)));
+    final reserveName = ordered.firstOrNullWhere((n) => n.contains(_reserveMark));
+    final reserveTried = reserveName != null && _tried.contains(_sanitize(reserveName));
+    // Если несколько разных обычных подряд не встали — это зона, а не сбой
+    // одного сервера: сразу прыгаем на резерв, не перебирая остаток списка.
+    final String? next;
+    if (_tried.length >= _normalsFailForReserve && reserveName != null && !reserveTried) {
+      next = reserveName;
+    } else {
+      next = ordered.firstOrNullWhere((n) => !_tried.contains(_sanitize(n)));
+    }
     if (next == null) {
       // Все перепробованы — реально нет связи. Ждём смены обстановки.
       _connectingSince = null;
@@ -131,7 +154,16 @@ class ShutdownFailover with InfraLogger {
     final notifier = ref.read(proxiesOverviewNotifierProvider.notifier);
 
     if (!onReserve) {
-      if (allNormalsDead && reserveAlive) {
+      // Быстрый путь: активная HTTP-проба через текущий (обычный) сервер.
+      // Два провала подряд (~16с) = трафик реально не идёт → сразу на резерв.
+      final probeDown = await _probeConnectivity();
+      if (probeDown && reserveAlive) {
+        loggy.info("shutdown-failover: проба связи не прошла, резерв жив → «резерв»");
+        await notifier.changeProxy(group.tag, reserve.tag);
+        _deadStreak = 0;
+        _probeFailStreak = 0;
+      } else if (allNormalsDead && reserveAlive) {
+        // Запасной путь по url-test (медленнее пробы) с гистерезисом.
         _deadStreak++;
         if (_deadStreak >= _deadStreakThreshold) {
           loggy.info("shutdown-failover: обычные мертвы, резерв жив → «резерв»");
@@ -163,5 +195,32 @@ class ShutdownFailover with InfraLogger {
         await notifier.urlTest(group.tag);
       }
     }
+  }
+
+  /// Активная проба связи через активный туннель. true = связь подтверждённо
+  /// не работает (>= _probeFailForDown провалов подряд). Троттл _probeEverySec —
+  /// между пробами отдаёт последний вердикт (тик чаще пробы). Запрос идёт через
+  /// системный стек → активный TUN → текущий сервер: в зоне белых списков он
+  /// не доходит до generate_204 и падает по таймауту.
+  Future<bool> _probeConnectivity() async {
+    final now = DateTime.now();
+    if (_lastProbe != null && now.difference(_lastProbe!).inSeconds < _probeEverySec) {
+      return _probeFailStreak >= _probeFailForDown;
+    }
+    _lastProbe = now;
+    bool ok;
+    try {
+      final dio = Dio(BaseOptions(
+        connectTimeout: const Duration(seconds: 5),
+        receiveTimeout: const Duration(seconds: 5),
+        validateStatus: (s) => s != null && s < 500,
+      ));
+      final r = await dio.get(_probeUrl);
+      ok = r.statusCode != null && r.statusCode! < 400;
+    } catch (_) {
+      ok = false;
+    }
+    _probeFailStreak = ok ? 0 : _probeFailStreak + 1;
+    return _probeFailStreak >= _probeFailForDown;
   }
 }
