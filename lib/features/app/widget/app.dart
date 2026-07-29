@@ -61,6 +61,12 @@ class App extends HookConsumerWidget with WidgetsBindingObserver, PresLogger {
       // запуске onResume вызывается из initState хука, где обращение к provider
       // через inherited widget запрещено (assert _debugIsInitHook).
       ref.invalidate(subscriptionSyncProvider);
+      // Пункт 1: если VPN упал в фоне/простое, пока пользователь был вне
+      // приложения — мгновенно переподключаемся при возврате (не ждём таймер
+      // failover). Дёшево: экран уже включён, Doze снят.
+      if (PlatformUtils.isAndroid) {
+        ref.read(connectionNotifierProvider.notifier).reconnectIfDroppedInBackground();
+      }
     });
   }
 

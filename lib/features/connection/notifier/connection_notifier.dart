@@ -105,6 +105,19 @@ class ConnectionNotifier extends _$ConnectionNotifier with AppLogger {
     }
   }
 
+  /// Быстрое восстановление при возврате в приложение: если пользователь включал
+  /// VPN, а он упал в фоне (Doze/сон/простой), сразу переподключаемся — мгновеннее
+  /// таймера failover и почти бесплатно по батарее (экран уже активен, Doze снят).
+  /// Вызывается из App.onResume. startedByUser=false, когда пользователь сам
+  /// выключил VPN, поэтому «тихий» сброс мы не трогаем.
+  Future<void> reconnectIfDroppedInBackground() async {
+    if (!ref.read(Preferences.startedByUser)) return;
+    final value = state.valueOrNull;
+    if (value is Connected || value is Connecting) return; // работает / уже поднимается
+    loggy.info("resume: VPN was on but dropped in background → reconnecting");
+    await _connect();
+  }
+
   Future<void> toggleConnection() async {
     final haptic = ref.read(hapticServiceProvider.notifier);
     if (state case AsyncError()) {
