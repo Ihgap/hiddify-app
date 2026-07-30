@@ -22,34 +22,59 @@ class GeneralPage extends HookConsumerWidget {
       appBar: AppBar(title: Text(t.pages.settings.general.title)),
       body: ListView(
         children: [
-          // Режим совместимости и Быстрый режим — взаимоисключающие: включение
-          // одного автоматически отжимает другой (нельзя держать обе галочки).
-          SwitchListTile.adaptive(
-            title: const Text('Режим совместимости'),
-            subtitle: const Text(
-              'Выключите, если есть проблемы с открытием каких-то сайтов/приложений. '
-              'Если не помогло, обратитесь в техническую поддержку.',
+          // Режим работы VPN: выбран ровно один из трёх (radio). Лестница
+          // «надёжность → скорость», каждому режиму — свой TUN-стек
+          // (ConfigOptions.resolveTunStack).
+          Padding(
+            padding: const EdgeInsetsDirectional.fromSTEB(16, 16, 16, 0),
+            child: Text(
+              'Режим работы',
+              style: Theme.of(
+                context,
+              ).textTheme.titleSmall?.copyWith(color: Theme.of(context).colorScheme.primary),
             ),
-            secondary: const Icon(Icons.healing_rounded),
-            value: ref.watch(ConfigOptions.compatibilityMode),
-            onChanged: (value) async {
-              await ref.read(ConfigOptions.compatibilityMode.notifier).update(value);
-              if (value) await ref.read(ConfigOptions.fastMode.notifier).update(false);
-            },
           ),
-          SwitchListTile.adaptive(
-            title: const Text('Быстрый режим'),
-            subtitle: const Text(
-              'Ускоряет VPN. Если появились проблемы с открытием сайтов/приложений — '
-              'используйте «Режим совместимости».',
+          RadioGroup<VpnMode>(
+            groupValue: ref.watch(ConfigOptions.vpnMode),
+            onChanged: (value) async {
+              if (value != null) await ref.read(ConfigOptions.vpnMode.notifier).update(value);
+            },
+            child: const Column(
+              children: [
+                RadioListTile<VpnMode>(
+                  value: VpnMode.compatibility,
+                  title: Text('Режим совместимости'),
+                  subtitle: Text(
+                    'Самый надёжный режим — работает стабильно на любых устройствах. '
+                    'Выбирайте, если в других режимах какие-то сайты или приложения '
+                    'перестали открываться.',
+                  ),
+                  secondary: Icon(Icons.healing_rounded),
+                ),
+                RadioListTile<VpnMode>(
+                  value: VpnMode.fast,
+                  title: Text('Быстрый режим'),
+                  subtitle: Text(
+                    'Заметно быстрее, при этом достаточно стабильный. Подходит '
+                    'большинству устройств — попробуйте, и если всё работает, '
+                    'оставляйте его.',
+                  ),
+                  secondary: Icon(Icons.rocket_launch_rounded),
+                ),
+                RadioListTile<VpnMode>(
+                  value: VpnMode.maxSpeed,
+                  title: Text('Максимальная скорость'),
+                  subtitle: Text(
+                    'Самый быстрый режим, но работает не на всех устройствах. Если '
+                    'после включения появились проблемы с интернетом — вернитесь на '
+                    '«Быстрый» или «Режим совместимости».',
+                  ),
+                  secondary: Icon(Icons.bolt_rounded),
+                ),
+              ],
             ),
-            secondary: const Icon(Icons.rocket_launch_rounded),
-            value: ref.watch(ConfigOptions.fastMode),
-            onChanged: (value) async {
-              await ref.read(ConfigOptions.fastMode.notifier).update(value);
-              if (value) await ref.read(ConfigOptions.compatibilityMode.notifier).update(false);
-            },
           ),
+          const Divider(),
           const LocalePrefTile(),
           const ThemeModePrefTile(),
           if (PlatformUtils.isAndroid) ...[

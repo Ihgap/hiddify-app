@@ -1,10 +1,13 @@
 import 'package:dartx/dartx.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:hiddify/features/connection/model/connection_status.dart';
 import 'package:hiddify/features/connection/notifier/connection_notifier.dart';
 import 'package:hiddify/features/proxy/overview/offline_servers.dart';
 import 'package:hiddify/features/proxy/overview/proxies_overview_notifier.dart';
 import 'package:hiddify/utils/custom_loggers.dart';
+import 'package:hiddify/utils/platform_utils.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 String _sanitize(String tag) => tag.replaceFirst(RegExp(r"\§[^]*"), "").trimRight();
@@ -18,7 +21,8 @@ String _sanitize(String tag) => tag.replaceFirst(RegExp(r"\§[^]*"), "").trimRig
 ///     а «резерв» жив → уходим на «резерв»; обычные ожили → назад на «Авто».
 ///
 /// «Резерв» помечен §reserve§ (ядро держит его в select, но вне url-test — см.
-/// builder.go). Тик вызывается по таймеру (~5с) из App.
+/// builder.go). Тик вызывается по таймеру (~4с) из App; при погашенном экране
+/// работа прореживается до раза в ~60с и активная проба не выполняется.
 ///
 /// Пинг url-test: 0 = не тестировался/нет ответа, 65535 (большое) = timeout →
 /// «мёртв»; «жив» = 0 < пинг < 60000.
@@ -38,12 +42,44 @@ class ShutdownFailover with InfraLogger {
   /// Активная проба связи через туннель: URL, частота, порог провалов.
   /// Проба идёт ЧЕРЕЗ активный (обычный) сервер за границей — если туннель жив,
   /// generate_204 доступен; в зоне белых списков туннель мёртв → проба падает.
+  /// Проба выполняется, только когда пользователь реально смотрит на телефон:
+  /// приложение на переднем плане ИЛИ экран устройства включён (Android,
+  /// см. _screenOn). При погашенном экране HTTP-запрос каждые 8с не давал
+  /// сотовому модему уснуть (после каждой передачи радио ~5-10с держится в
+  /// активном состоянии) — главный источник фонового расхода батареи. При
+  /// включённом экране радио и так активно, а детект остаётся быстрым (~20с).
   static const _probeUrl = "http://connectivitycheck.gstatic.com/generate_204";
   static const _probeEverySec = 8;
   static const _probeFailForDown = 2;
 
+  /// В фоне тик прореживается до раза в [_bgTickEverySec] (таймер в App
+  /// продолжает дёргать каждые ~4с, но работа выполняется реже). Детект в фоне
+  /// остаётся — по пассивным url-test-данным ядра, без активной пробы.
+  static const _bgTickEverySec = 60;
+
   static bool _dead(int d) => d <= 0 || d >= 60000;
   static bool _alive(int d) => d > 0 && d < 60000;
+
+  /// null на старте (до первого lifecycle-события) считаем передним планом.
+  static bool get _foreground {
+    final state = WidgetsBinding.instance.lifecycleState;
+    return state == null || state == AppLifecycleState.resumed;
+  }
+
+  /// Тот же канал, что для device_id (MainActivity). Binder-вызов внутри
+  /// устройства — копеечный, радио не трогает.
+  static const _deviceChannel = MethodChannel('com.ihgap.vpn/device');
+
+  /// Включён ли экран устройства. Только Android; при любой ошибке канала —
+  /// консервативно false (нет пробы).
+  static Future<bool> _screenOn() async {
+    if (!PlatformUtils.isAndroid) return false;
+    try {
+      return await _deviceChannel.invokeMethod<bool>('isScreenOn') ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
 
   DateTime? _connectingSince;
   final Set<String> _tried = {};
@@ -52,11 +88,24 @@ class ShutdownFailover with InfraLogger {
   DateTime? _lastProbe;
   int _probeFailStreak = 0;
   bool _busy = false;
+  DateTime? _lastBgTick;
+  bool _probeAllowed = true;
 
   Future<void> tick(WidgetRef ref) async {
     if (_busy) return;
     _busy = true;
     try {
+      // «Активный» = пользователь смотрит на телефон: приложение открыто ИЛИ
+      // включён экран. Определяет и частоту работы, и право на активную пробу.
+      final active = _foreground || await _screenOn();
+      _probeAllowed = active;
+      if (!active) {
+        final now = DateTime.now();
+        if (_lastBgTick != null && now.difference(_lastBgTick!).inSeconds < _bgTickEverySec) {
+          return;
+        }
+        _lastBgTick = now;
+      }
       final conn = ref.read(connectionNotifierProvider);
       final status = conn.valueOrNull;
 
@@ -156,7 +205,10 @@ class ShutdownFailover with InfraLogger {
     if (!onReserve) {
       // Быстрый путь: активная HTTP-проба через текущий (обычный) сервер.
       // Два провала подряд (~16с) = трафик реально не идёт → сразу на резерв.
-      final probeDown = await _probeConnectivity();
+      // Только при включённом экране/открытом приложении: с погашенным экраном
+      // пробу не делаем (батарея), детект работает по запасному пути ниже
+      // (url-test-данные ядра).
+      final probeDown = _probeAllowed && await _probeConnectivity();
       if (probeDown && reserveAlive) {
         loggy.info("shutdown-failover: проба связи не прошла, резерв жив → «резерв»");
         await notifier.changeProxy(group.tag, reserve.tag);

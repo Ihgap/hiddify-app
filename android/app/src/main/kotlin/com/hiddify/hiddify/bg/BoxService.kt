@@ -271,11 +271,13 @@ class BoxService(
     @RequiresApi(Build.VERSION_CODES.M)
     private fun serviceUpdateIdleMode() {
         if (Application.powerManager.isDeviceIdleMode) {
-//            boxService?.pause()
-            //Mobile.pause()
+            // Пауза в Doze останавливает только тикеры ядра (url-тесты
+            // мониторинга) — туннель продолжает пропускать трафик. Без паузы
+            // ядро всю ночь будило радиомодуль каждые 5 минут url-тестами
+            // всех серверов.
+            Mobile.pause()
         } else {
             Mobile.wake()
-//            boxService?.wake()
         }
     }
 

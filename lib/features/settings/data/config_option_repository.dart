@@ -2,6 +2,7 @@ import 'package:dartx/dartx.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:hiddify/core/model/optional_range.dart';
 import 'package:hiddify/core/model/region.dart';
+import 'package:hiddify/core/preferences/preferences_provider.dart';
 import 'package:hiddify/core/utils/exception_handler.dart';
 import 'package:hiddify/core/utils/json_converters.dart';
 import 'package:hiddify/core/utils/preferences_utils.dart';
@@ -16,6 +17,18 @@ import 'package:hiddify/singbox/model/singbox_config_option.dart';
 import 'package:hiddify/utils/utils.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+/// Режим работы VPN (Настройки → Общие): выбран ровно один из трёх.
+/// Лестница «надёжность → скорость» — от режима зависит TUN-стек и MTU
+/// (см. [ConfigOptions.resolveTunStack]).
+enum VpnMode {
+  compatibility("compatibility"),
+  fast("fast"),
+  maxSpeed("max-speed");
+
+  const VpnMode(this.key);
+  final String key;
+}
 
 abstract class ConfigOptions {
   static final serviceMode = PreferencesNotifier.create<ServiceMode, String>(
@@ -60,26 +73,34 @@ abstract class ConfigOptions {
 
   static final resolveDestination = PreferencesNotifier.create<bool, bool>("resolve-destination", false);
 
-  // Режим совместимости (по умолчанию ON): gVisor TUN вместо system — самый
-  // совместимый стек, реже проблемы с открытием сайтов/приложений. Выключается
-  // вручную (через «Быстрый режим»), если пользователю нужна максимальная скорость.
-  static final compatibilityMode = PreferencesNotifier.create<bool, bool>("compatibility-mode", true);
+  // Режим работы VPN — одна radio-настройка вместо прежних двух булевых галочек
+  // compatibility-mode / fast-mode. Дефолт — «Режим совместимости» (gvisor).
+  // defaultValueFunction — миграция со старых ключей: работает только пока
+  // "vpn-mode" ещё не записан, повторяет старую логику выбора стека
+  // (compat ON → gvisor, fast ON → mixed, обе OFF → system).
+  static final vpnMode = PreferencesNotifier.create<VpnMode, String>(
+    "vpn-mode",
+    VpnMode.compatibility,
+    defaultValueFunction: (ref) {
+      final prefs = ref.read(sharedPreferencesProvider).requireValue;
+      final compat = prefs.getBool("compatibility-mode") ?? true;
+      final fast = prefs.getBool("fast-mode") ?? false;
+      if (compat) return VpnMode.compatibility;
+      return fast ? VpnMode.fast : VpnMode.maxSpeed;
+    },
+    mapFrom: (value) => VpnMode.values.firstWhere((e) => e.key == value, orElse: () => VpnMode.compatibility),
+    mapTo: (value) => value.key,
+  );
 
-  // Быстрый режим (по умолчанию OFF): mixed TUN-стек — TCP через ядро (скорость
-  // system), UDP через gVisor (совместимость). Компромисс между скоростью и
-  // надёжностью. Взаимоисключающий с compatibilityMode (см. general_page.dart и
-  // resolveTunStack ниже): нельзя включить обе одновременно.
-  static final fastMode = PreferencesNotifier.create<bool, bool>("fast-mode", false);
-
-  // Выбор TUN-стека по двум галочкам:
-  //   Режим совместимости ON  → gvisor (userspace, самый совместимый, медленнее)
-  //   Быстрый режим ON        → mixed  (TCP ядро + UDP gvisor)
-  //   обе OFF                 → system (ядро, максимально быстро, но device-specific)
-  static TunImplementation resolveTunStack({required bool compatibility, required bool fast}) {
-    if (compatibility) return TunImplementation.gvisor;
-    if (fast) return TunImplementation.mixed;
-    return TunImplementation.system;
-  }
+  // Каждому режиму — свой TUN-стек:
+  //   Режим совместимости    → gvisor (userspace, самый совместимый, медленнее)
+  //   Быстрый режим          → mixed  (TCP через ядро + UDP через gvisor)
+  //   Максимальная скорость  → system (всё через ядро, быстрее всего, но device-specific)
+  static TunImplementation resolveTunStack(VpnMode mode) => switch (mode) {
+    VpnMode.compatibility => TunImplementation.gvisor,
+    VpnMode.fast => TunImplementation.mixed,
+    VpnMode.maxSpeed => TunImplementation.system,
+  };
 
   static final ipv6Mode = PreferencesNotifier.create<IPv6Mode, String>(
     "ipv6-mode",
@@ -403,6 +424,7 @@ abstract class ConfigOptions {
     "direct-port": directPort,
     "redirect-port": redirectPort,
     "tun-implementation": tunImplementation,
+    "vpn-mode": vpnMode,
     "mtu": mtu,
     "strict-route": strictRoute,
     "connection-test-url": connectionTestUrl,
@@ -513,14 +535,11 @@ abstract class ConfigOptions {
         ? foreignRouting['direct_dns'] as String
         : ref.watch(directDnsAddress);
 
-    // Стек TUN определяется двумя галочками (см. resolveTunStack). Из него же
+    // Стек TUN определяется «Режимом работы» (см. resolveTunStack). Из него же
     // выводим MTU: у system-стека MTU 9000 на части устройств рвёт большие
     // пакеты (TLS Яндекса, IPv6 Telegram) — для него берём безопасные 1500.
     // gvisor/mixed обрабатывают крупные пакеты в userspace, им 9000 даёт прирост.
-    final tunStack = resolveTunStack(
-      compatibility: ref.watch(compatibilityMode),
-      fast: ref.watch(fastMode),
-    );
+    final tunStack = resolveTunStack(ref.watch(vpnMode));
     final tunMtu = tunStack == TunImplementation.system ? 1500 : ref.watch(mtu);
 
     return SingboxConfigOption(

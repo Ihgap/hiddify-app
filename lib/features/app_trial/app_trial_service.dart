@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 import 'package:hiddify/core/model/constants.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 /// Ответ бэкенда на POST /app/activate.
 class AppTrialResult {
@@ -65,9 +66,14 @@ class AppTrialService {
       sig = mac.convert(utf8.encode('$deviceId.$ts')).toString();
     }
 
+    // Сборка для Google Play (com.tutu4ka.vpn) не должна показывать кнопки
+    // внешней оплаты (Payments policy) — бэкенд по package решает, какой
+    // pay_url отдавать.
+    final packageName = (await PackageInfo.fromPlatform()).packageName;
+
     final res = await _dio.post<dynamic>(
       Constants.appActivateUrl,
-      data: {'device_id': deviceId, 'ts': ts, 'sig': sig},
+      data: {'device_id': deviceId, 'ts': ts, 'sig': sig, 'package': packageName},
     );
 
     final data = res.data;

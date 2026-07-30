@@ -64,6 +64,13 @@ class MainActivity : FlutterFragmentActivity(), ServiceConnection.Callback {
                         )
                         result.success(id)
                     }
+                    // Включён ли экран устройства. Нужно failover'у (Dart):
+                    // активная HTTP-проба связи разрешена при включённом экране,
+                    // даже если наше приложение в фоне — радиомодуль в это время
+                    // и так активен, а детект белых списков остаётся быстрым.
+                    "isScreenOn" -> {
+                        result.success(Application.powerManager.isInteractive)
+                    }
                     else -> result.notImplemented()
                 }
             }

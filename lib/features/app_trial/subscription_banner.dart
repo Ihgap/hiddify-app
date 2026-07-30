@@ -3,6 +3,16 @@ import 'package:gap/gap.dart';
 import 'package:hiddify/features/app_trial/app_trial_controller.dart';
 import 'package:hiddify/utils/uri_utils.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+
+/// Сборка из Google Play: package отличается от сайтовой (com.ihgap.vpn).
+/// В ней нельзя показывать призывы к внешней оплате (Payments policy),
+/// поэтому у привязанных пользователей вместо «Оформить подписку»/«Продлить»
+/// — нейтральная кнопка «Telegram» (бэкенд отдаёт ей ссылку на бота без
+/// платёжного deep-link).
+final _isPlayBuildProvider = FutureProvider<bool>(
+  (_) async => (await PackageInfo.fromPlatform()).packageName == 'com.tutu4ka.vpn',
+);
 
 /// Баннер статуса подписки на главном экране.
 ///
@@ -23,6 +33,7 @@ class SubscriptionBanner extends ConsumerWidget {
     final theme = Theme.of(context);
     final result = ref.watch(subscriptionSyncProvider).valueOrNull;
     if (result == null) return const SizedBox.shrink();
+    final isPlayBuild = ref.watch(_isPlayBuildProvider).valueOrNull ?? false;
 
     final linked = result.linked;
     final expired = result.status == 'expired';
@@ -46,12 +57,12 @@ class SubscriptionBanner extends ConsumerWidget {
       actionUrl = result.linkUrl;
     } else if (expired) {
       title = 'Подписка истекла';
-      actionLabel = 'Оформить подписку';
+      actionLabel = isPlayBuild ? 'Telegram' : 'Оформить подписку';
       actionUrl = result.payUrl;
       bg = theme.colorScheme.errorContainer;
     } else {
       title = expires != null ? 'Подписка активна до ${_fmtDate(expires)}' : 'Подписка активна';
-      actionLabel = 'Продлить';
+      actionLabel = isPlayBuild ? 'Telegram' : 'Продлить';
       actionUrl = result.payUrl;
       bg = theme.colorScheme.primaryContainer;
     }

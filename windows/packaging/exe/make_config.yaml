@@ -2,6 +2,8 @@ app_id: FC867DE9-5CDE-4F66-B358-6C05F4622C58
 publisher: Ihgap
 publisher_url: https://github.com/Ihgap/hiddify-app
 display_name: TuTu4kA VPN
+# Явно: иначе packager берёт первый .exe по алфавиту из Release — HiddifyCli.exe.
+executable_name: TuTu4kA_VPN.exe
 create_desktop_icon: true
 install_dir_name: "{autopf64}\\TuTu4kA VPN"
 setup_icon_file: windows\runner\resources\app_icon.ico
