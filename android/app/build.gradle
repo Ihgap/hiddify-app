@@ -79,14 +79,19 @@ android {
         multiDexEnabled true
     }
 
+    // Только arm64-v8a: нативное ядро (android/app/libs/hiddify-core.aar) собрано
+    // gomobile под arm64. Со сборками под другие ABI Flutter кладёт свой
+    // libflutter.so, но libhiddify-core.so туда не попадает — приложение
+    // устанавливается и падает при подключении. Google Play по составу lib/
+    // считал бы такой AAB совместимым с 32-битными устройствами и раздавал его
+    // туда. Чтобы вернуть остальные ABI, надо пересобрать .aar под каждый из них.
+    // ABI задаётся ТОЛЬКО флагом Flutter --target-platform=android-arm64 (он
+    // прокидывает ndk.abiFilters сам). Держать здесь ещё и splits.abi нельзя:
+    // Gradle падает с "Conflicting configuration ... in ndk abiFilters cannot be
+    // present when splits abi filters are set", как только наборы разойдутся.
     splits {
         abi {
-            enable true
-            reset()
-            //noinspection ChromeOsAbiSupport
-            include "x86_64", "armeabi-v7a", "arm64-v8a"
-
-            universalApk true
+            enable false
         }
     }
 
@@ -109,10 +114,26 @@ android {
                 signingConfig signingConfigs.debug
             }
             ndk {
-                //noinspection ChromeOsAbiSupport
-                abiFilters "x86_64", "armeabi-v7a", "arm64-v8a"
                 debugSymbolLevel 'FULL'
             }
+        }
+    }
+
+    // Отсечение лишних ABI. Нативное ядро (libs/hiddify-core.aar) собрано
+    // gomobile только под arm64, поэтому всё остальное грузить нельзя.
+    // Почему именно packagingOptions, а не что-то другое:
+    //  - `--target-platform=android-arm64` ограничивает только libflutter.so и
+    //    libapp.so; сторонние плагины (sentry, sqlite, ML Kit) всё равно кладут
+    //    свои .so во все ABI, и папки lib/armeabi-v7a, lib/x86_64 остаются;
+    //  - `ndk.abiFilters` здесь бесполезен: Flutter Gradle plugin переопределяет
+    //    его своим набором (видно по ошибке конфликта, где фигурируют все три ABI);
+    //  - `splits.abi` нельзя совмещать с abiFilters — Gradle падает с
+    //    "Conflicting configuration ... when splits abi filters are set".
+    // Иначе Play видит lib/armeabi-v7a/ и раздаёт бандл 32-битным устройствам,
+    // где нет ни движка Flutter, ни ядра — приложение падает при запуске.
+    packagingOptions {
+        jniLibs {
+            excludes += ["**/armeabi-v7a/**", "**/x86_64/**", "**/x86/**"]
         }
     }
 
