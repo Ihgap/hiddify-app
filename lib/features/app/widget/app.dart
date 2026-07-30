@@ -144,8 +144,10 @@ class App extends HookConsumerWidget with WidgetsBindingObserver, PresLogger {
     // связь восстановилась → обратно на «Авто». Логика в ShutdownFailover.
     useEffect(() {
       final failover = ShutdownFailover();
+      // 8с, не чаще: активная проба в failover всё равно троттлится до раза
+      // в 8с, а более частый тик только будил процесс лишний раз (батарея).
       final timer = Timer.periodic(
-        const Duration(seconds: 4),
+        const Duration(seconds: 8),
         (_) => failover.tick(ref),
       );
       return timer.cancel;

@@ -137,6 +137,19 @@ class BoxService(
                         serviceUpdateIdleMode()
                     }
                 }
+
+                // Пауза тикеров ядра по выключению экрана, а не только по Doze:
+                // deep Doze наступает лишь когда телефон неподвижен (ночь, стол),
+                // а в кармане днём url-тесты каждые 5 минут продолжали будить
+                // радиомодуль. Пауза останавливает только периодические тесты —
+                // туннель продолжает пропускать трафик (пуши, музыка, звонки).
+                Intent.ACTION_SCREEN_OFF -> {
+                    Mobile.pause()
+                }
+
+                Intent.ACTION_SCREEN_ON -> {
+                    Mobile.wake()
+                }
             }
         }
     }
@@ -425,6 +438,8 @@ class BoxService(
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                     addAction(PowerManager.ACTION_DEVICE_IDLE_MODE_CHANGED)
                 }
+                addAction(Intent.ACTION_SCREEN_ON)
+                addAction(Intent.ACTION_SCREEN_OFF)
             }, ContextCompat.RECEIVER_NOT_EXPORTED)
             receiverRegistered = true
         }
