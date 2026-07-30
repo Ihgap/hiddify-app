@@ -198,13 +198,9 @@ class PerAppProxyPage extends HookConsumerWidget with PresLogger {
                       ],
                       child: Text(t.common.export),
                     ),
-                    if (ref.watch(ConfigOptions.region) != Region.other)
-                      MenuItemButton(
-                        child: Text(t.pages.settings.routing.generalOptions.perAppProxy.options.shareToAll),
-                        onPressed: () async => await ref
-                            .read(appProxyLoadingProvider.notifier)
-                            .doAsync(ref.read(PerAppProxyProvider(mode).notifier).shareOnGithub),
-                      ),
+                    // «Поделиться со всеми» убран: открывал создание issue в
+                    // GitHub-репозитории hiddify (Android-GFW-Apps) — чужой
+                    // проект, наши пользователи там не нужны.
                     const PopupMenuDivider(),
                     MenuItemButton(
                       child: Text(t.pages.settings.routing.generalOptions.perAppProxy.options.clearAllSelections),
