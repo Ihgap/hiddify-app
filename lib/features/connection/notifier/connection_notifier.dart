@@ -209,9 +209,23 @@ class ConnectionNotifier extends _$ConnectionNotifier with AppLogger {
     }).run();
   }
 
+  /// Таймаут закрытия сервисов ядра («close connection: ... timed out after 10s»).
+  /// Возникает, когда зависшие соединения (обычно UDP) не закрылись за отведённые
+  /// ядру 10с — после таймаута ядро всё равно останавливается принудительно,
+  /// туннель разобран. Для пользователя это не сбой, диалог не показываем.
+  static bool _isBenignCloseTimeout(Object err) {
+    final s = err.toString();
+    return s.contains("timed out") && s.contains("close");
+  }
+
   Future<void> _disconnect() async {
     await _connectionRepo.disconnect().mapLeft((err) {
       loggy.warning("error disconnecting", err);
+      if (_isBenignCloseTimeout(err)) {
+        // Остановка фактически произошла — не пугаем пользователя диалогом
+        // и не переводим состояние в ошибку.
+        return;
+      }
       ref
           .read(dialogNotifierProvider.notifier)
           .showCustomAlertFromErr(err.present(ref.read(translationsProvider).requireValue));
