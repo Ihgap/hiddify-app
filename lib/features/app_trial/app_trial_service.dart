@@ -1,8 +1,10 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 import 'package:hiddify/core/model/constants.dart';
+import 'package:hiddify/features/app_trial/device_identity.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 /// Ответ бэкенда на POST /app/activate.
@@ -66,14 +68,32 @@ class AppTrialService {
       sig = mac.convert(utf8.encode('$deviceId.$ts')).toString();
     }
 
-    // Сборка для Google Play (com.tutu4ka.vpn) не должна показывать кнопки
-    // внешней оплаты (Payments policy) — бэкенд по package решает, какой
-    // pay_url отдавать.
+    // Установки из Google Play не должны видеть кнопки внешней оплаты
+    // (Payments policy). Пакет теперь единый для Play и sideload-раздачи,
+    // поэтому решает не package, а источник установки: store=play|side.
+    // package шлём тоже — как fallback для бэкенда и диагностики.
     final packageName = (await PackageInfo.fromPlatform()).packageName;
+    final store = await DeviceIdentity.installedFromPlay() ? 'play' : 'side';
+
+    // Платформа — чтобы бэкенд различал Android/Windows-устройства в статистике.
+    // Без этого поля бэкенд определяет платформу по форме device_id, так что
+    // старые сборки тоже учитываются; поле лишь делает это однозначным.
+    final platform = Platform.isAndroid
+        ? 'android'
+        : Platform.isWindows
+            ? 'windows'
+            : Platform.operatingSystem;
 
     final res = await _dio.post<dynamic>(
       Constants.appActivateUrl,
-      data: {'device_id': deviceId, 'ts': ts, 'sig': sig, 'package': packageName},
+      data: {
+        'device_id': deviceId,
+        'ts': ts,
+        'sig': sig,
+        'package': packageName,
+        'store': store,
+        'platform': platform,
+      },
     );
 
     final data = res.data;
