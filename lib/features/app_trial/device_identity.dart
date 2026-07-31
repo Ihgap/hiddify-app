@@ -33,6 +33,19 @@ class DeviceIdentity {
     }
   }
 
+  /// Установлено ли приложение из Google Play ("com.android.vending").
+  /// Для установок из Play бэкенд не отдаёт платёжные ссылки (Payments policy);
+  /// sideload из бота/с сайта работает по-старому. На не-Android всегда false.
+  static Future<bool> installedFromPlay() async {
+    if (!Platform.isAndroid) return false;
+    try {
+      final installer = await _channel.invokeMethod<String>('getInstallerPackage');
+      return installer == 'com.android.vending';
+    } catch (_) {
+      return false;
+    }
+  }
+
   static final _guidRe = RegExp(
     '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}',
   );

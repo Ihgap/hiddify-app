@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:hiddify/features/app_trial/app_trial_controller.dart';
+import 'package:hiddify/features/app_trial/device_identity.dart';
 import 'package:hiddify/utils/uri_utils.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 
-/// Сборка из Google Play: package отличается от сайтовой (com.ihgap.vpn).
-/// В ней нельзя показывать призывы к внешней оплате (Payments policy),
-/// поэтому у привязанных пользователей вместо «Оформить подписку»/«Продлить»
-/// — нейтральная кнопка «Telegram» (бэкенд отдаёт ей ссылку на бота без
-/// платёжного deep-link).
-final _isPlayBuildProvider = FutureProvider<bool>(
-  (_) async => (await PackageInfo.fromPlatform()).packageName == 'com.tutu4ka.vpn',
+/// Установка из Google Play: нельзя показывать призывы к внешней оплате
+/// (Payments policy), поэтому у привязанных пользователей вместо
+/// «Оформить подписку»/«Продлить» — нейтральная кнопка «Telegram» (бэкенд
+/// отдаёт ей ссылку на бота без платёжного deep-link). Пакет единый для Play
+/// и sideload-раздачи, поэтому решает источник установки, а не package.
+final _isPlayInstallProvider = FutureProvider<bool>(
+  (_) => DeviceIdentity.installedFromPlay(),
 );
 
 /// Баннер статуса подписки на главном экране.
@@ -33,7 +33,7 @@ class SubscriptionBanner extends ConsumerWidget {
     final theme = Theme.of(context);
     final result = ref.watch(subscriptionSyncProvider).valueOrNull;
     if (result == null) return const SizedBox.shrink();
-    final isPlayBuild = ref.watch(_isPlayBuildProvider).valueOrNull ?? false;
+    final isPlayBuild = ref.watch(_isPlayInstallProvider).valueOrNull ?? false;
 
     final linked = result.linked;
     final expired = result.status == 'expired';

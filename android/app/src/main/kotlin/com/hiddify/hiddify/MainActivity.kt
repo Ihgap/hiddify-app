@@ -71,6 +71,22 @@ class MainActivity : FlutterFragmentActivity(), ServiceConnection.Callback {
                     "isScreenOn" -> {
                         result.success(Application.powerManager.isInteractive)
                     }
+                    // Откуда установлено приложение: "com.android.vending" = Google Play.
+                    // По этому признаку бэкенд решает, показывать ли кнопки внешней
+                    // оплаты (Payments policy запрещает их только для установок из Play).
+                    "getInstallerPackage" -> {
+                        val installer = try {
+                            if (android.os.Build.VERSION.SDK_INT >= 30) {
+                                packageManager.getInstallSourceInfo(packageName).installingPackageName
+                            } else {
+                                @Suppress("DEPRECATION")
+                                packageManager.getInstallerPackageName(packageName)
+                            }
+                        } catch (_: Exception) {
+                            null
+                        }
+                        result.success(installer ?: "")
+                    }
                     else -> result.notImplemented()
                 }
             }
