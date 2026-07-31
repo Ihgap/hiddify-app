@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hiddify/core/localization/translations.dart';
+import 'package:hiddify/features/app_trial/device_identity.dart';
 import 'package:hiddify/features/app_update/model/remote_version_entity.dart';
 import 'package:hiddify/features/app_update/notifier/app_update_notifier.dart';
 import 'package:hiddify/utils/utils.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 class NewVersionDialog extends HookConsumerWidget with PresLogger {
   NewVersionDialog(this.currentVersion, this.newVersion, {super.key, this.canIgnore = true});
@@ -57,6 +59,16 @@ class NewVersionDialog extends HookConsumerWidget with PresLogger {
         TextButton(onPressed: context.pop, child: Text(t.common.later)),
         TextButton(
           onPressed: () async {
+            // Установка из Google Play обновляется ТОЛЬКО через Play: APK с
+            // наших источников подписан другим ключом, и Android заблокирует
+            // установку поверх («Приложение заблокировано для защиты…»).
+            if (await DeviceIdentity.installedFromPlay()) {
+              final pkg = (await PackageInfo.fromPlatform()).packageName;
+              await UriUtils.tryLaunch(
+                Uri.parse('https://play.google.com/store/apps/details?id=$pkg'),
+              );
+              return;
+            }
             await UriUtils.tryLaunch(Uri.parse(newVersion.url));
           },
           child: Text(t.dialogs.newVersion.updateNow),
