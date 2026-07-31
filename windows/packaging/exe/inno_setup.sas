@@ -60,7 +60,10 @@ Name: "{autoprograms}\\{{DISPLAY_NAME}}"; Filename: "{app}\\{{EXECUTABLE_NAME}}"
 Name: "{autodesktop}\\{{DISPLAY_NAME}}"; Filename: "{app}\\{{EXECUTABLE_NAME}}"; Tasks: desktopicon
 Name: "{userstartup}\\{{DISPLAY_NAME}}"; Filename: "{app}\\{{EXECUTABLE_NAME}}"; WorkingDir: "{app}"; Tasks: launchAtStartup
 [Run]
-Filename: "{app}\\{{EXECUTABLE_NAME}}"; Description: "{cm:LaunchProgram,{{DISPLAY_NAME}}}"; Flags: {% if PRIVILEGES_REQUIRED == 'admin' %}runascurrentuser{% endif %} nowait postinstall skipifsilent
+; runasoriginaluser + без skipifsilent — чтобы после ТИХОГО самообновления
+; (/VERYSILENT из апдейтера) приложение перезапустилось само, причём от имени
+; обычного пользователя, а не под правами администратора установщика.
+Filename: "{app}\\{{EXECUTABLE_NAME}}"; Description: "{cm:LaunchProgram,{{DISPLAY_NAME}}}"; Flags: nowait postinstall runasoriginaluser
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{userappdata}\Ihgap"

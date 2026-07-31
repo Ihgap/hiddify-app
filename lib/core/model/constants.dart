@@ -11,6 +11,9 @@ abstract class Constants {
   // Appcast хостится на нашем сервере (не GitHub): доступен из РФ, и ссылка
   // на установщик в нём ведёт на наш же файл.
   static const appCastUrl = "https://ihgap.xyz/appcast.xml";
+  // Канонический установщик Windows: качаем его напрямую для тихого
+  // самообновления (не зависим от того, какой из двух чекеров сработал).
+  static const windowsSetupUrl = "https://ihgap.xyz/TuTu4kA_VPN_Setup.exe";
   static const telegramChannelUrl = "https://t.me/hiddify";
   static const privacyPolicyUrl = "https://hiddify.com/privacy-policy/";
   static const termsAndConditionsUrl = "https://hiddify.com/terms/";

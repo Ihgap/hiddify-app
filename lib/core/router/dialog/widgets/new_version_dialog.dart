@@ -5,6 +5,7 @@ import 'package:hiddify/core/localization/translations.dart';
 import 'package:hiddify/features/app_trial/device_identity.dart';
 import 'package:hiddify/features/app_update/model/remote_version_entity.dart';
 import 'package:hiddify/features/app_update/notifier/app_update_notifier.dart';
+import 'package:hiddify/features/app_update/windows_updater.dart';
 import 'package:hiddify/utils/utils.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -59,6 +60,15 @@ class NewVersionDialog extends HookConsumerWidget with PresLogger {
         TextButton(onPressed: context.pop, child: Text(t.common.later)),
         TextButton(
           onPressed: () async {
+            // Windows: тихое самообновление вместо открытия ссылки в браузере.
+            if (PlatformUtils.isWindows) {
+              // Root-контекст переживёт закрытие этого диалога — прогресс
+              // самообновления показываем уже на нём.
+              final rootContext = Navigator.of(context, rootNavigator: true).context;
+              context.pop();
+              await runWindowsSelfUpdate(rootContext, ref);
+              return;
+            }
             // Установка из Google Play обновляется ТОЛЬКО через Play: APK с
             // наших источников подписан другим ключом, и Android заблокирует
             // установку поверх («Приложение заблокировано для защиты…»).

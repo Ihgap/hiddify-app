@@ -17,6 +17,7 @@ import 'package:hiddify/core/theme/app_theme.dart';
 import 'package:hiddify/core/theme/theme_preferences.dart';
 import 'package:hiddify/features/app_trial/app_trial_controller.dart';
 import 'package:hiddify/features/app_update/notifier/app_update_notifier.dart';
+import 'package:hiddify/features/app_update/windows_updater.dart';
 import 'package:hiddify/features/connection/notifier/connection_notifier.dart';
 import 'package:hiddify/features/connection/widget/connection_wrapper.dart';
 import 'package:hiddify/features/per_app_proxy/overview/per_app_proxy_service_notifier.dart';
@@ -174,6 +175,20 @@ class App extends HookConsumerWidget with WidgetsBindingObserver, PresLogger {
                     child = UpgradeAlert(
                       upgrader: upgrader,
                       navigatorKey: router.routerDelegate.navigatorKey,
+                      // Windows: вместо открытия ссылки в браузере — тихое
+                      // самообновление (скачать → тихо поставить → перезапуск).
+                      // false = не отправлять в браузер; пакет сам закрывает
+                      // свой диалог, после чего показываем прогресс.
+                      onUpdate: () {
+                        if (PlatformUtils.isWindows) {
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            final ctx = router.routerDelegate.navigatorKey.currentContext;
+                            if (ctx != null) runWindowsSelfUpdate(ctx, ref);
+                          });
+                          return false;
+                        }
+                        return true;
+                      },
                       child: child ?? const SizedBox(),
                     );
                     if (kDebugMode && _debugAccessibility) {
