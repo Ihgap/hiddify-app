@@ -1,5 +1,6 @@
 package com.hiddify.hiddify.bg
 
+import android.app.AlarmManager
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -8,11 +9,14 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.Build
 import android.os.IBinder
 import android.os.ParcelFileDescriptor
 import android.os.PowerManager
+import android.os.SystemClock
 import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
@@ -47,6 +51,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.net.HttpURLConnection
+import java.net.URL
 
 class BoxService(
         private val service: Service,
@@ -55,6 +61,14 @@ class BoxService(
 
     companion object {
         private const val TAG = "A/BoxService"
+
+        // Сторожевой тик во сне: пока экран погашен, тикеры ядра стоят
+        // (Mobile.pause по SCREEN_OFF) и детект обрыва слеп. Редкий алярм
+        // проверяет связь через туннель и при обрыве перезапускает ядро.
+        private const val ACTION_WATCHDOG = "com.tutu4ka.vpn.action.SLEEP_WATCHDOG"
+        private const val WATCHDOG_INTERVAL_MS = 15 * 60_000L
+        // HTTPS (не generate_204 по http): cleartext разрешён только для 127.0.0.1.
+        private const val WATCHDOG_PROBE_URL = "https://connectivitycheck.gstatic.com/generate_204"
 
         private var initializeOnce = false
         private lateinit var workingDir: File
@@ -145,10 +159,123 @@ class BoxService(
                 // туннель продолжает пропускать трафик (пуши, музыка, звонки).
                 Intent.ACTION_SCREEN_OFF -> {
                     Mobile.pause()
+                    scheduleWatchdog()
                 }
 
                 Intent.ACTION_SCREEN_ON -> {
                     Mobile.wake()
+                    cancelWatchdog()
+                }
+
+                ACTION_WATCHDOG -> {
+                    onWatchdogTick()
+                }
+            }
+        }
+    }
+
+    private val alarmManager by lazy {
+        service.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+    }
+
+    private val watchdogIntent: PendingIntent by lazy {
+        PendingIntent.getBroadcast(
+            service, 0,
+            Intent(ACTION_WATCHDOG).setPackage(service.packageName),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+    }
+
+    // setAndAllowWhileIdle: неточный будильник, которому разрешено срабатывать
+    // в лёгком Doze (в глубоком — не чаще ~раза в 9 мин, наши 15 мин проходят).
+    // Точность не нужна, SCHEDULE_EXACT_ALARM не требуется.
+    private fun scheduleWatchdog() {
+        try {
+            alarmManager.setAndAllowWhileIdle(
+                AlarmManager.ELAPSED_REALTIME_WAKEUP,
+                SystemClock.elapsedRealtime() + WATCHDOG_INTERVAL_MS,
+                watchdogIntent,
+            )
+        } catch (e: Exception) {
+            Log.w(TAG, "watchdog schedule failed", e)
+        }
+    }
+
+    private fun cancelWatchdog() {
+        try {
+            alarmManager.cancel(watchdogIntent)
+        } catch (_: Exception) {
+        }
+    }
+
+    /// Есть ли вообще физическая сеть (не-VPN интерфейс с интернетом). Если нет —
+    /// перезапускать ядро бессмысленно: телефон в метро/вне покрытия.
+    private fun hasPhysicalNetwork(): Boolean {
+        return try {
+            val cm = service.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+            cm.allNetworks.any { n ->
+                val caps = cm.getNetworkCapabilities(n) ?: return@any false
+                !caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN) &&
+                    caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            }
+        } catch (e: Exception) {
+            // не смогли спросить систему — не блокируем восстановление,
+            // решающей остаётся проба
+            true
+        }
+    }
+
+    /// Запрос идёт через системный стек → активный TUN → текущий сервер
+    /// (приложение НЕ исключено из собственного туннеля — так же работает
+    /// HTTP-проба failover на Dart-стороне).
+    private fun probeOnce(): Boolean {
+        return try {
+            val conn = URL(WATCHDOG_PROBE_URL).openConnection() as HttpURLConnection
+            conn.connectTimeout = 5_000
+            conn.readTimeout = 5_000
+            conn.instanceFollowRedirects = false
+            val code = conn.responseCode
+            conn.disconnect()
+            code in 200..399
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    private fun onWatchdogTick() {
+        // Экран включили раньше, чем долетел cancel — детектом занимается
+        // Dart-failover, наш тик не нужен (и не перевзводим его).
+        if (Application.powerManager.isInteractive) return
+        if (status.value != Status.Started || pausedMarkerFile().exists()) return
+        // В глубоком Doze система сама режет сеть приложениям — проба провалится
+        // не из-за туннеля. Пропускаем проверку, но тик перевзводим.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && Application.powerManager.isDeviceIdleMode) {
+            scheduleWatchdog()
+            return
+        }
+        // Будильник даёт ~10с на работу — держим процессор явно на время пробы
+        // (радио и так проснётся от HTTP-запроса).
+        val wl = Application.powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "tutu4ka:sleep_watchdog")
+        wl.acquire(90_000L)
+        GlobalScope.launch(Dispatchers.IO) {
+            try {
+                if (!hasPhysicalNetwork()) return@launch
+                if (probeOnce()) return@launch
+                delay(3_000L)
+                if (probeOnce()) return@launch
+                Log.w(TAG, "sleep watchdog: сеть есть, туннель мёртв → перезапуск ядра")
+                resumeService()
+                // Ядро поднялось с работающими тикерами, а экран погашен —
+                // усыпляем их снова, как это сделал бы SCREEN_OFF.
+                delay(15_000L)
+                if (!Application.powerManager.isInteractive && status.value == Status.Started) {
+                    Mobile.pause()
+                }
+            } finally {
+                scheduleWatchdog()
+                try {
+                    wl.release()
+                } catch (_: Exception) {
                 }
             }
         }
@@ -298,6 +425,7 @@ class BoxService(
         if (status.value == Status.Stopped) return
         status.value = Status.Stopping
         setPausedMarker(false)
+        cancelWatchdog()
         if (receiverRegistered) {
             service.unregisterReceiver(receiver)
             receiverRegistered = false
@@ -359,6 +487,7 @@ class BoxService(
         try {
             setPausedMarker(true)
             notification.setPaused(true)
+            cancelWatchdog()
             val pfd = fileDescriptor
             if (pfd != null) {
                 pfd.close()
@@ -440,6 +569,7 @@ class BoxService(
                 }
                 addAction(Intent.ACTION_SCREEN_ON)
                 addAction(Intent.ACTION_SCREEN_OFF)
+                addAction(ACTION_WATCHDOG)
             }, ContextCompat.RECEIVER_NOT_EXPORTED)
             receiverRegistered = true
         }
