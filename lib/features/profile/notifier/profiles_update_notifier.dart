@@ -55,6 +55,18 @@ class ForegroundProfilesUpdateNotifier extends _$ForegroundProfilesUpdateNotifie
     await _scheduler?.trigger();
   }
 
+  /// Прогнать проверку немедленно, но БЕЗ форсирования: профили, у которых
+  /// интервал ещё не истёк, не трогаются.
+  ///
+  /// Нужно на событие подключения. Если домен подписки заблокирован, обновления
+  /// падают, но сохранённый список серверов цел и по нему можно подключиться —
+  /// а изнутри туннеля запрос к подписке уже проходит. Без этого вызова
+  /// приложение чинилось бы само, но только на очередном 15-минутном цикле.
+  Future<void> triggerIfDue() async {
+    loggy.debug("connection established, running due profile updates now");
+    await _scheduler?.trigger();
+  }
+
   @visibleForTesting
   Future<void> updateProfiles() async {
     var force = false;

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:hiddify/core/haptic/haptic_service.dart';
@@ -11,6 +12,7 @@ import 'package:hiddify/features/connection/model/connection_failure.dart';
 import 'package:hiddify/features/connection/model/connection_status.dart';
 import 'package:hiddify/features/profile/model/profile_entity.dart';
 import 'package:hiddify/features/profile/notifier/active_profile_notifier.dart';
+import 'package:hiddify/features/profile/notifier/profiles_update_notifier.dart';
 import 'package:path/path.dart' as p;
 import 'package:hiddify/hiddifycore/init_signal.dart';
 import 'package:hiddify/utils/utils.dart';
@@ -54,6 +56,18 @@ class ConnectionNotifier extends _$ConnectionNotifier with AppLogger {
       }
 
       if (next case AsyncData(value: final Connected _)) {
+        // Появился туннель — прогоняем просроченные обновления подписки прямо
+        // сейчас. Смысл в блокировках: если домен подписки режут, обновления
+        // снаружи падают, но изнутри туннеля проходят. Без этого приложение
+        // всё равно починилось бы само, но только на очередном 15-минутном
+        // цикле планировщика. Намеренно не форсируем — профили с неистёкшим
+        // интервалом не трогаются, лишней нагрузки нет.
+        // Вне ветки _userInitiatedConnect: автоподключение при старте лечить
+        // нужно ровно так же, как ручное.
+        unawaited(
+          ref.read(foregroundProfilesUpdateNotifierProvider.notifier).triggerIfDue(),
+        );
+
         if (_userInitiatedConnect) {
           _userInitiatedConnect = false;
           await ref.read(hapticServiceProvider.notifier).heavyImpact();
