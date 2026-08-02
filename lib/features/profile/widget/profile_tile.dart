@@ -25,6 +25,17 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import 'package:url_launcher/url_launcher.dart';
 
+/// Активен ли сейчас резервный сервер «по спискам» (§reserve§). Лимит трафика
+/// есть только у него — на обычных серверах безлимит, поэтому и полоса расхода,
+/// и остаток в ГБ показываются исключительно на резерве.
+final onReserveProvider = Provider<bool>((ref) {
+  final connection = ref.watch(connectionNotifierProvider).valueOrNull;
+  final group = ref.watch(proxiesOverviewNotifierProvider).valueOrNull;
+  return connection is Connected &&
+      group != null &&
+      group.items.any((e) => e.tag.contains('§reserve§') && e.tag == group.selected);
+});
+
 class ProfileTile extends HookConsumerWidget {
   const ProfileTile({super.key, required this.profile, this.isMain = false, this.margin = EdgeInsets.zero, this.color});
 
@@ -166,8 +177,10 @@ class ProfileTile extends HookConsumerWidget {
                             ),
                           if (subInfo != null) ...[
                             const Gap(4),
-                            RemainingTrafficIndicator(subInfo.ratio),
-                            const Gap(4),
+                            if (ref.watch(onReserveProvider)) ...[
+                              RemainingTrafficIndicator(subInfo.ratio),
+                              const Gap(4),
+                            ],
                             ProfileSubscriptionInfo(subInfo),
                             const Gap(4),
                           ],
@@ -346,11 +359,7 @@ class ProfileSubscriptionInfo extends HookConsumerWidget {
 
     // Лимит «по спискам» показываем только когда активен резервный сервер
     // (§reserve§): ограничен только его трафик, у остальных — безлимит.
-    final connection = ref.watch(connectionNotifierProvider).valueOrNull;
-    final group = ref.watch(proxiesOverviewNotifierProvider).valueOrNull;
-    final onReserve = connection is Connected &&
-        group != null &&
-        group.items.any((e) => e.tag.contains('§reserve§') && e.tag == group.selected);
+    final onReserve = ref.watch(onReserveProvider);
 
     final remaining = remainingText(t, theme, onReserve);
     return Row(
