@@ -89,6 +89,12 @@ class HiddifyCoreService with InfraLogger {
   TaskEither<String, Unit> setup() {
     return TaskEither(() async {
       try {
+        // Реальный статус — первым делом, до инициализации fg-ядра: проверка
+        // дешёвая (сокет на localhost), а публикуем мы её в BehaviorSubject,
+        // поэтому экран увидит верное состояние сразу, как только подпишется.
+        currentState = await core.currentStatus() ?? currentState;
+        statusController.add(currentState);
+
         final directories = ref.read(appDirectoriesProvider).requireValue;
         final debug = ref.read(debugModeNotifierProvider);
         final setupResponse = await core.setup(directories, debug, 3);
@@ -102,6 +108,12 @@ class HiddifyCoreService with InfraLogger {
         if (!core.isSingleChannel()) {
           await startListeningLogs("bg", core.bgClient);
         }
+        // Ещё раз, уже после инициализации: currentState могли сбросить в
+        // stopped на уходе в фон (doOnCancel в startListeningStatus), и раньше
+        // мы публиковали именно этот протухший stopped — экран показывал «VPN
+        // выключен» поверх работающего туннеля, пока не переподключится
+        // gRPC-стрим статуса (после долгого простоя это заметные секунды).
+        currentState = await core.currentStatus() ?? currentState;
         statusController.add(currentState);
         await startListeningStatus("bg", core.bgClient);
         // ref.read(coreRestartSignalProvider.notifier).restart();
@@ -110,6 +122,17 @@ class HiddifyCoreService with InfraLogger {
         return left(e.toString());
       }
     });
+  }
+
+  /// Состояние ядра «прямо сейчас», минуя стрим статуса (см. currentStatus в
+  /// CoreInterface). null — платформа ответить не умеет.
+  Future<CoreStatus?> probeCoreStatus() async {
+    try {
+      return await core.currentStatus();
+    } catch (e) {
+      loggy.warning("failed to probe core status: $e");
+      return null;
+    }
   }
 
   TaskEither<String, Unit> changeOptions(SingboxConfigOption options) {

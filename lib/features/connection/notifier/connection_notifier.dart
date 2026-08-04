@@ -128,6 +128,16 @@ class ConnectionNotifier extends _$ConnectionNotifier with AppLogger {
     if (!ref.read(Preferences.startedByUser)) return;
     final value = state.valueOrNull;
     if (value is Connected || value is Connecting) return; // работает / уже поднимается
+    // Стрим статуса при возврате в приложение переустанавливается и до первого
+    // события отдаёт либо ничего, либо устаревший Disconnected. Верить ему здесь
+    // нельзя: реконнект начинается с остановки сервиса, то есть мы бы своими
+    // руками рвали живой туннель. Спрашиваем ядро напрямую.
+    final actual = await _connectionRepo.probeConnectionStatus();
+    if (actual is Connected || actual is Connecting) {
+      loggy.info("resume: core is alive, status stream is just catching up");
+      if (state.valueOrNull != actual) state = AsyncData(actual!);
+      return;
+    }
     loggy.info("resume: VPN was on but dropped in background → reconnecting");
     await _connect();
   }

@@ -174,6 +174,16 @@ class CoreInterfaceMobile extends CoreInterface with InfraLogger {
     return true;
   }
 
+  /// Ядро в фоне (VPN-сервис) держит свой gRPC-порт ровно пока туннель поднят:
+  /// setupBackground ждёт открытия порта, stop() — его закрытия. Это тот же факт,
+  /// который показывает уведомление в шторке, и получаем мы его мгновенно —
+  /// в отличие от стрима статуса, который после возврата в приложение
+  /// переустанавливается и до первого события молчит.
+  @override
+  Future<CoreStatus?> currentStatus() async {
+    return await isActiveBg() ? const CoreStarted() : const CoreStatus.stopped();
+  }
+
   @override
   Future<bool> isActiveFg() async {
     return await isPortOpen("127.0.0.1", portFront);

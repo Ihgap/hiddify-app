@@ -26,6 +26,13 @@ class CoreInterface {
     return true;
   }
 
+  /// Реальное состояние ядра «прямо сейчас», без ожидания стрима статуса.
+  /// null — платформа не умеет ответить синхронно (десктоп: ядро живёт
+  /// в процессе приложения, отдельного источника правды нет).
+  Future<CoreStatus?> currentStatus() async {
+    return null;
+  }
+
   bool isSingleChannel() {
     // return true;
     return fgClient == bgClient;

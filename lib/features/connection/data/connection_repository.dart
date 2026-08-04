@@ -20,6 +20,9 @@ abstract interface class ConnectionRepository {
 
   TaskEither<ConnectionFailure, Unit> setup();
   Stream<ConnectionStatus> watchConnectionStatus();
+
+  /// Статус «прямо сейчас», не дожидаясь стрима. null — узнать не удалось.
+  Future<ConnectionStatus?> probeConnectionStatus();
   TaskEither<ConnectionFailure, Unit> connect(ProfileEntity activeProfile, bool disableMemoryLimit);
   TaskEither<ConnectionFailure, Unit> disconnect();
   TaskEither<ConnectionFailure, Unit> reconnect(ProfileEntity activeProfile, bool disableMemoryLimit);
@@ -75,6 +78,18 @@ class ConnectionRepositoryImpl with ExceptionHandler, InfraLogger implements Con
         CoreStopping() => const Disconnecting(),
       },
     );
+  }
+
+  @override
+  Future<ConnectionStatus?> probeConnectionStatus() async {
+    return switch (await singbox.probeCoreStatus()) {
+      CoreStopped(alert: final _?) => null, // ядро отчиталось об ошибке — пусть решает стрим
+      CoreStopped() => const Disconnected(),
+      CoreStarting() => const Connecting(),
+      CoreStarted() => const Connected(),
+      CoreStopping() => const Disconnecting(),
+      null => null,
+    };
   }
 
   @override
