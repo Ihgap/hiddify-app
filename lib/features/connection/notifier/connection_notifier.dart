@@ -6,6 +6,7 @@ import 'package:hiddify/core/localization/translations.dart';
 import 'package:hiddify/core/preferences/general_preferences.dart';
 import 'package:hiddify/core/router/dialog/dialog_notifier.dart';
 import 'package:hiddify/core/directories/directories_provider.dart';
+import 'package:hiddify/core/utils/windows_privileges.dart';
 import 'package:hiddify/features/connection/data/connection_data_providers.dart';
 import 'package:hiddify/features/connection/data/connection_repository.dart';
 import 'package:hiddify/features/connection/model/connection_failure.dart';
@@ -221,9 +222,15 @@ class ConnectionNotifier extends _$ConnectionNotifier with AppLogger {
     ) async {
       loggy.warning("error connecting", err);
       //Go err is not normal object to see the go errors are string and need to be dumped
-      await ref
-          .read(dialogNotifierProvider.notifier)
-          .showCustomAlertFromErr(err.present(ref.read(translationsProvider).requireValue));
+      if (err is MissingPrivilege) {
+        // Тупик без выхода: обычный диалог сообщил бы «нужны права админа» и
+        // оставил пользователя один на один с этим. Предлагаем перезапуск.
+        await _offerRelaunchAsAdmin();
+      } else {
+        await ref
+            .read(dialogNotifierProvider.notifier)
+            .showCustomAlertFromErr(err.present(ref.read(translationsProvider).requireValue));
+      }
       loggy.warning(err);
       if (err.toString().contains("panic")) {
         await Sentry.captureException(Exception(err.toString()));
@@ -231,6 +238,29 @@ class ConnectionNotifier extends _$ConnectionNotifier with AppLogger {
       await ref.read(Preferences.startedByUser.notifier).update(false);
       state = AsyncError(err, StackTrace.current);
     }).run();
+  }
+
+  /// Режим «VPN» на Windows требует прав администратора. Показываем причину и
+  /// сразу даём выход — перезапуск через UAC, а не «разбирайся сам».
+  Future<void> _offerRelaunchAsAdmin() async {
+    final t = ref.read(translationsProvider).requireValue;
+    final confirmed = await ref
+        .read(dialogNotifierProvider.notifier)
+        .showConfirmation(
+          title: t.errors.singbox.missingPrivilege,
+          message: t.errors.singbox.missingPrivilegeMsg,
+          positiveBtnTxt: "Перезапустить от имени администратора",
+        );
+    if (!confirmed) return;
+    if (!relaunchAsAdmin()) {
+      loggy.info("relaunch as admin declined or failed");
+      return;
+    }
+    // Выходим немедленно: ядро слушает фиксированные порты, и если этот процесс
+    // переживёт старт нового, тот подключится к уже поднятому ядру и снова
+    // окажется без прав.
+    loggy.info("relaunching as admin");
+    exit(0);
   }
 
   /// Таймаут закрытия сервисов ядра («close connection: ... timed out after 10s»).

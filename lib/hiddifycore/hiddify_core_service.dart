@@ -233,9 +233,12 @@ class HiddifyCoreService with InfraLogger {
           // Транспортный сбой gRPC во время старта — ретраим.
           loggy.error("failed to start bg core (attempt $attempt/$maxAttempts): $e");
           ref.read(coreRestartSignalProvider.notifier).restart();
+          // Текст от ядра сохраняем: раньше любой сбой старта выглядел как
+          // безликое «failed to start background core», и отладить его было
+          // нельзя ни пользователю, ни по скриншоту.
           lastFailure = e.code == StatusCode.unavailable
               ? const ConnectionFailure.unexpected("background core is not started yet!")
-              : const ConnectionFailure.unexpected("failed to start background core");
+              : ConnectionFailure.unexpected("failed to start background core: ${e.message ?? e.code}");
           continue;
         }
       }

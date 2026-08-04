@@ -1,8 +1,11 @@
+import 'dart:io';
+
 import 'package:fpdart/fpdart.dart';
 import 'package:hiddify/core/model/directories.dart';
 import 'package:hiddify/core/preferences/general_preferences.dart';
 import 'package:hiddify/core/router/dialog/dialog_notifier.dart';
 import 'package:hiddify/core/utils/exception_handler.dart';
+import 'package:hiddify/core/utils/windows_privileges.dart';
 import 'package:hiddify/features/connection/model/connection_failure.dart';
 import 'package:hiddify/features/connection/model/connection_status.dart';
 import 'package:hiddify/features/profile/data/profile_path_resolver.dart';
@@ -10,6 +13,7 @@ import 'package:hiddify/features/profile/model/profile_entity.dart';
 import 'package:hiddify/features/settings/data/config_option_repository.dart';
 import 'package:hiddify/hiddifycore/hiddify_core_service.dart';
 import 'package:hiddify/singbox/model/core_status.dart';
+import 'package:hiddify/singbox/model/singbox_config_enum.dart';
 import 'package:hiddify/singbox/model/singbox_config_option.dart';
 import 'package:hiddify/utils/utils.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -92,23 +96,41 @@ class ConnectionRepositoryImpl with ExceptionHandler, InfraLogger implements Con
     };
   }
 
+  /// Режим «VPN» на Windows без прав администратора не взлетит: TUN-инбаунд
+  /// строится безусловно, а Wintun-адаптер обычному пользователю создать
+  /// нельзя — ядро падает на старте, и до пользователя долетает безликое
+  /// «failed to start background core». Отсекаем заранее и внятно.
+  TaskEither<ConnectionFailure, Unit> _ensureTunPrivileges() => TaskEither(() async {
+    if (!Platform.isWindows) return right(unit);
+    if (ref.read(ConfigOptions.serviceMode) != ServiceMode.tun) return right(unit);
+    if (isWindowsElevated()) return right(unit);
+    loggy.info("tun mode requested without admin rights");
+    return left(const ConnectionFailure.missingPrivilege());
+  });
+
   @override
-  TaskEither<ConnectionFailure, Unit> connect(ProfileEntity activeProfile, bool disableMemoryLimit) => setup().flatMap(
-    (_) => applyConfigOption(activeProfile).flatMap(
-      (_) => singbox.start(profilePathResolver.file(activeProfile.id).path, activeProfile.name, disableMemoryLimit),
-      // .mapLeft(UnexpectedConnectionFailure.new),
-    ),
-  );
+  TaskEither<ConnectionFailure, Unit> connect(ProfileEntity activeProfile, bool disableMemoryLimit) =>
+      _ensureTunPrivileges().flatMap(
+        (_) => setup().flatMap(
+          (_) => applyConfigOption(activeProfile).flatMap(
+            (_) =>
+                singbox.start(profilePathResolver.file(activeProfile.id).path, activeProfile.name, disableMemoryLimit),
+            // .mapLeft(UnexpectedConnectionFailure.new),
+          ),
+        ),
+      );
 
   @override
   TaskEither<ConnectionFailure, Unit> disconnect() => singbox.stop().mapLeft(UnexpectedConnectionFailure.new);
 
   @override
   TaskEither<ConnectionFailure, Unit> reconnect(ProfileEntity activeProfile, bool disableMemoryLimit) =>
-      applyConfigOption(activeProfile).flatMap(
-        (_) => singbox
-            .restart(profilePathResolver.file(activeProfile.id).path, activeProfile.name, disableMemoryLimit)
-            .mapLeft(UnexpectedConnectionFailure.new),
+      _ensureTunPrivileges().flatMap(
+        (_) => applyConfigOption(activeProfile).flatMap(
+          (_) => singbox
+              .restart(profilePathResolver.file(activeProfile.id).path, activeProfile.name, disableMemoryLimit)
+              .mapLeft(UnexpectedConnectionFailure.new),
+        ),
       );
 
   @visibleForTesting
