@@ -32,7 +32,10 @@ Upgrader upgrader(Ref ref) => Upgrader(
     onWeb: () => UpgraderAppcastStore(appcastURL: Constants.appCastUrl),
   ),
   debugLogging: _debugUpgrader && kDebugMode,
-  // durationUntilAlertAgain: const Duration(hours: 12),
+  // Дефолт пакета — трое суток. При нашем темпе релизов пользователь успевал
+  // пропустить пару версий: проверка идёт только при запуске приложения, и
+  // попасть в окно между кулдауном и следующим запуском легко.
+  durationUntilAlertAgain: const Duration(hours: 6),
   messages: UpgraderMessages(code: ref.watch(localePreferencesProvider).languageCode),
   // Автоматическая проверка молчала полностью: пакет глотает и сетевые сбои,
   // и «версия не подошла». Пишем итог в лог — иначе «обновление не приходит»
