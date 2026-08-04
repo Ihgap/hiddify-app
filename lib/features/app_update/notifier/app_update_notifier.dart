@@ -11,6 +11,7 @@ import 'package:hiddify/features/app_update/model/remote_version_entity.dart';
 import 'package:hiddify/features/app_update/notifier/app_update_state.dart';
 import 'package:hiddify/utils/utils.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:loggy/loggy.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:upgrader/upgrader.dart';
 import 'package:version/version.dart';
@@ -31,9 +32,18 @@ Upgrader upgrader(Ref ref) => Upgrader(
     onMacOS: () => UpgraderAppcastStore(appcastURL: Constants.appCastUrl),
     onWeb: () => UpgraderAppcastStore(appcastURL: Constants.appCastUrl),
   ),
-  debugLogging: false && _debugUpgrader && kDebugMode,
+  debugLogging: _debugUpgrader && kDebugMode,
   // durationUntilAlertAgain: const Duration(hours: 12),
   messages: UpgraderMessages(code: ref.watch(localePreferencesProvider).languageCode),
+  // Автоматическая проверка молчала полностью: пакет глотает и сетевые сбои,
+  // и «версия не подошла». Пишем итог в лог — иначе «обновление не приходит»
+  // невозможно отличить от «обновления нет».
+  willDisplayUpgrade: ({required display, installedVersion, versionInfo}) {
+    Loggy('AppUpdate').info(
+      "upgrader: display=$display installed=$installedVersion "
+      "remote=${versionInfo?.appStoreVersion} url=${versionInfo?.installedVersion}",
+    );
+  },
 );
 
 @Riverpod(keepAlive: true)
