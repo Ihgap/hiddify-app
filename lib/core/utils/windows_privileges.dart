@@ -48,15 +48,20 @@ bool relaunchAsAdmin() {
   final verb = 'runas'.toNativeUtf16();
   final file = exe.toNativeUtf16();
   final dir = File(exe).parent.path.toNativeUtf16();
+  // Флаг обязателен: без него новая копия стартует раньше, чем эта успеет
+  // умереть, натыкается на защиту от повторного запуска (окно + мьютекс в
+  // main.cpp) и молча закрывается. По флагу она ждёт нашего ухода.
+  final args = '--elevated-restart'.toNativeUtf16();
   try {
     // ShellExecute возвращает >32 при успехе; 5 (ERROR_ACCESS_DENIED) — отказ в UAC.
-    return ShellExecute(0, verb, file, nullptr, dir, SW_SHOWNORMAL) > 32;
+    return ShellExecute(0, verb, file, args, dir, SW_SHOWNORMAL) > 32;
   } catch (_) {
     return false;
   } finally {
     calloc
       ..free(verb)
       ..free(file)
-      ..free(dir);
+      ..free(dir)
+      ..free(args);
   }
 }

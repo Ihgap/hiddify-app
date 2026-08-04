@@ -2,6 +2,8 @@
 #include <flutter/flutter_view_controller.h>
 #include <windows.h>
 
+#include <string>
+
 #include "flutter_window.h"
 #include "utils.h"
 #include "app_links/app_links_plugin_c_api.h"
@@ -45,9 +47,38 @@ bool SendAppLinkToInstance(const std::wstring &title)
   return false;
 }
 
+// Перезапуск с правами администратора: старый экземпляр вызывает ShellExecute
+// и сразу выходит, но выход процесса и уничтожение окна не мгновенны. Без
+// ожидания мы стартуем раньше, чем он исчез, принимаем себя за дубликат и
+// молча закрываемся — а старый в это время тоже умирает, и не остаётся
+// ничего. Поэтому по флагу --elevated-restart ждём его ухода.
+static void WaitForPreviousInstance(const std::wstring &title, DWORD timeout_ms)
+{
+  const DWORD deadline = ::GetTickCount() + timeout_ms;
+  while (::GetTickCount() < deadline)
+  {
+    const HWND hwnd = ::FindWindow(L"FLUTTER_RUNNER_WIN32_WINDOW", title.c_str());
+    HANDLE mutex = ::OpenMutex(SYNCHRONIZE, FALSE, L"TuTu4kAVPNMutex");
+    const bool mutex_alive = mutex != NULL;
+    if (mutex != NULL)
+    {
+      ::CloseHandle(mutex);
+    }
+    if (hwnd == NULL && !mutex_alive)
+    {
+      return;
+    }
+    ::Sleep(200);
+  }
+}
+
 int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
                       _In_ wchar_t *command_line, _In_ int show_command)
 {
+  if (command_line != nullptr && ::wcsstr(command_line, L"--elevated-restart") != nullptr)
+  {
+    WaitForPreviousInstance(L"TuTu4kA VPN", 15000);
+  }
 
   // Replace "example" with the generated title found as parameter of `window.Create` in this file.
   // You may ignore the result if you need to create another window.
