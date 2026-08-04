@@ -111,6 +111,16 @@ class GeneralPage extends HookConsumerWidget {
           ],
           if (PlatformUtils.isAndroid) const BatteryOptimizationWidget(),
           SwitchListTile.adaptive(
+            title: const Text('Запускать туннель при запуске приложения'),
+            subtitle: const Text(
+              'Подключение к последнему выбранному серверу начнётся сразу при открытии '
+              'приложения, нажимать кнопку не нужно.',
+            ),
+            secondary: const Icon(Icons.play_circle_outline_rounded),
+            value: ref.watch(Preferences.connectOnStart),
+            onChanged: ref.read(Preferences.connectOnStart.notifier).update,
+          ),
+          SwitchListTile.adaptive(
             title: const Text('Логи'),
             subtitle: const Text(
               'По умолчанию выключены ради экономии заряда. Включайте только для '

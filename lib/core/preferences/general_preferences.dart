@@ -81,6 +81,11 @@ abstract class Preferences {
 
   static final silentStart = PreferencesNotifier.create<bool, bool>("silent_start", false);
 
+  /// Поднимать туннель сразу при запуске приложения, без нажатия кнопки.
+  /// Сервер берётся последний выбранный — он и так хранится в активном профиле
+  /// и в выборе ядра, отдельно запоминать нечего.
+  static final connectOnStart = PreferencesNotifier.create<bool, bool>("connect_on_start", false);
+
   static final disableMemoryLimit = PreferencesNotifier.create<bool, bool>(
     "disable_memory_limit",
     // disable memory limit on desktop by default

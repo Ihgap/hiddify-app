@@ -120,6 +120,52 @@ class ConnectionNotifier extends _$ConnectionNotifier with AppLogger {
     }
   }
 
+  /// Подключение автоматическое (настройка «Запускать туннель при запуске»),
+  /// а не по кнопке. Гасит модальные диалоги: при автозапуске с тихим стартом
+  /// приложение сидит в трее, и всплывающее окно там неуместно.
+  bool _autoConnecting = false;
+
+  /// Автоподключение при запуске приложения. Срабатывает один раз за запуск
+  /// процесса — возврат из фона сюда не попадает, там своя логика
+  /// ([reconnectIfDroppedInBackground]).
+  Future<void> connectOnAppStart() async {
+    if (!ref.read(Preferences.connectOnStart)) return;
+
+    // Ядро инициализируется асинхронно, и до первого статуса состояние — просто
+    // «неизвестно». Дёргать connect вслепую нельзя: на Android туннель может
+    // уже работать (процесс UI умирал, сервис жил), и мы бы его перезапустили.
+    final status = await _awaitResolvedStatus(const Duration(seconds: 15));
+    if (status is! Disconnected) {
+      loggy.info("connect on start: status is ${status?.format() ?? 'unknown'}, skipping");
+      return;
+    }
+    if (await ref.read(activeProfileProvider.future) == null) {
+      loggy.info("connect on start: no active profile, skipping");
+      return;
+    }
+
+    loggy.info("connect on start: connecting");
+    _autoConnecting = true;
+    _awaitingConnect = true;
+    state = const AsyncData(Connecting());
+    await ref.read(Preferences.startedByUser.notifier).update(true);
+    try {
+      await _connect();
+    } finally {
+      _autoConnecting = false;
+    }
+  }
+
+  Future<ConnectionStatus?> _awaitResolvedStatus(Duration timeout) async {
+    final deadline = DateTime.now().add(timeout);
+    while (DateTime.now().isBefore(deadline)) {
+      final value = state.valueOrNull;
+      if (value != null) return value;
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+    }
+    return null;
+  }
+
   /// Быстрое восстановление при возврате в приложение: если пользователь включал
   /// VPN, а он упал в фоне (Doze/сон/простой), сразу переподключаемся — мгновеннее
   /// таймера failover и почти бесплатно по батарее (экран уже активен, Doze снят).
@@ -222,7 +268,13 @@ class ConnectionNotifier extends _$ConnectionNotifier with AppLogger {
     ) async {
       loggy.warning("error connecting", err);
       //Go err is not normal object to see the go errors are string and need to be dumped
-      if (err is MissingPrivilege) {
+      if (_autoConnecting) {
+        // Автоподключение молчит: иначе при автозапуске с тихим стартом
+        // пользователь получал бы модальное окно (а в VPN-режиме без прав —
+        // ещё и UAC) на каждый вход в систему. Причина остаётся в логах, а
+        // кнопка подключения покажет диалог, если нажать её руками.
+        loggy.info("auto connect failed, not showing dialog: $err");
+      } else if (err is MissingPrivilege) {
         // Тупик без выхода: обычный диалог сообщил бы «нужны права админа» и
         // оставил пользователя один на один с этим. Предлагаем перезапуск.
         await _offerRelaunchAsAdmin();

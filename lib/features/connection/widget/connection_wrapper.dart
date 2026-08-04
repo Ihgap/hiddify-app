@@ -45,15 +45,12 @@ class _ConnectionWrapperState extends ConsumerState<ConnectionWrapper> with AppL
   @override
   void initState() {
     super.initState();
-    // remove for now...
-    //
-    // Future.delayed(const Duration(seconds: 2)).then(
-    //   (_) async {
-    //     if (ref.read(startedByUserProvider) && PlatformUtils.isDesktop) {
-    //       loggy.debug("previously started by user, trying to connect");
-    //       return ref.read(connectionNotifierProvider.notifier).mayConnect();
-    //     }
-    //   },
-    // );
+    // Автоподключение при запуске приложения, если включена настройка в
+    // «Общие». Сам виджет монтируется один раз за запуск процесса, поэтому
+    // повторов при возврате из фона не будет. Ожидание готовности ядра —
+    // внутри connectOnAppStart.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(connectionNotifierProvider.notifier).connectOnAppStart();
+    });
   }
 }
