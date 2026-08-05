@@ -113,9 +113,16 @@ class ForegroundProfilesUpdateNotifier extends _$ForegroundProfilesUpdateNotifie
               })
               .map((_) {
                 loggy.debug("profile [${profile.id}] updated successfully");
-                ref
-                    .read(inAppNotificationControllerProvider)
-                    .showSuccessToast(t.pages.profiles.msg.update.successNamed(name: profile.name));
+                // Только когда обновление запросил пользователь (кнопка). Фоновая
+                // проверка идёт при каждом открытии приложения и подключении, и
+                // её успех — не новость: показать было нечего, ничего не менялось.
+                // Профиль называется как приложение, поэтому тост читался как
+                // «приложение обновлено до последней версии» и сбивал с толку.
+                if (force) {
+                  ref
+                      .read(inAppNotificationControllerProvider)
+                      .showSuccessToast(t.pages.profiles.msg.update.successNamed(name: profile.name));
+                }
                 state = AsyncData((name: profile.name, success: true));
               })
               .run();
