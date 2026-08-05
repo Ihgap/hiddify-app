@@ -337,7 +337,10 @@ class BoxService(
 //                Libbox.newService(content,platformInterface)
 
             } catch (e: Exception) {
-                stopAndAlert(Alert.CreateService, e.message)
+                // e.message у части исключений null, и пользователь видел голое
+                // «createService - null» без единой зацепки. Подставляем тип
+                // исключения — по нему хотя бы понятно, что упало.
+                stopAndAlert(Alert.CreateService, e.message ?: e.toString())
                 return
             }
             status.postValue(Status.Started)

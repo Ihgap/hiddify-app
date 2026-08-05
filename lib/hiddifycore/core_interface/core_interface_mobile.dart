@@ -106,7 +106,16 @@ class CoreInterfaceMobile extends CoreInterface with InfraLogger {
   @override
   Future<CoreStatus> setupBackground(String path, String name) async {
     // if (!await waitUntilPort(portBack, false, stop)) return const CoreStatus.stopped(alert: CoreAlert.createService);
-    if (!await stop()) return const CoreStatus.stopped(alert: CoreAlert.createService);
+    if (!await stop()) {
+      // Раньше здесь возвращался alert без сообщения, и пользователь видел
+      // «createService - null» — ровно то же, что при исключении в Mobile.setup
+      // на нативной стороне. Два разных сбоя с одинаковым текстом отладить
+      // нельзя, поэтому причину называем явно.
+      return CoreStatus.stopped(
+        alert: CoreAlert.createService,
+        message: "порт ядра $portBack не освободился: прежний экземпляр VPN-сервиса не завершился",
+      );
+    }
     _status.clean();
     await methodChannel.invokeMethod("start", {
       "path": path,
@@ -151,7 +160,11 @@ class CoreInterfaceMobile extends CoreInterface with InfraLogger {
   @override
   Future<bool> stop() async {
     await stopMethodChannel();
-    if (!await waitUntilPort(portBack, false, null, maxTry: 10)) {
+    // 10 попыток (2с) не хватало на устройствах с агрессивным управлением
+    // фоном (realme/Oppo и подобные): система придерживает процесс сервиса, и
+    // порт освобождается позже. Ждём дольше — задержка возникает только когда
+    // прежний экземпляр действительно ещё жив.
+    if (!await waitUntilPort(portBack, false, null, maxTry: 30)) {
       return false;
     }
 
