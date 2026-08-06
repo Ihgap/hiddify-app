@@ -4,6 +4,8 @@ import android.annotation.SuppressLint
 import android.content.Intent
 import android.Manifest
 import android.content.pm.PackageManager
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.net.VpnService
 import android.os.Build
 import android.util.Log
@@ -70,6 +72,29 @@ class MainActivity : FlutterFragmentActivity(), ServiceConnection.Callback {
                     // и так активен, а детект белых списков остаётся быстрым.
                     "isScreenOn" -> {
                         result.success(Application.powerManager.isInteractive)
+                    }
+                    // Прошёл ли VPN-туннель системную проверку связности.
+                    // Система шлёт свою пробу ПО VPN-СЕТИ, то есть пакет идёт
+                    // через TUN и через проверяемый стек — и только потом ядро
+                    // решает по правилам, отправить его на сервер или напрямую.
+                    // Поэтому флаг отвечает ровно на наш вопрос «стек работает?»
+                    // и не зависит ни от geoip-правил, ни от «только зарубежного
+                    // трафика». Проба самого приложения так не умеет: своё
+                    // приложение исключено из туннеля (VPNService.openTun).
+                    "isVpnValidated" -> {
+                        val cm = getSystemService(ConnectivityManager::class.java)
+                        var validated = false
+                        if (cm != null) {
+                            for (network in cm.allNetworks) {
+                                val caps = cm.getNetworkCapabilities(network) ?: continue
+                                if (!caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) continue
+                                if (caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)) {
+                                    validated = true
+                                    break
+                                }
+                            }
+                        }
+                        result.success(validated)
                     }
                     // Откуда установлено приложение: "com.android.vending" = Google Play.
                     // По этому признаку бэкенд решает, показывать ли кнопки внешней
