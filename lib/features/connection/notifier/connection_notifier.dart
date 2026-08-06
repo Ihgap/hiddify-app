@@ -12,6 +12,8 @@ import 'package:hiddify/features/connection/data/connection_data_providers.dart'
 import 'package:hiddify/features/connection/data/connection_repository.dart';
 import 'package:hiddify/features/connection/model/connection_failure.dart';
 import 'package:hiddify/features/connection/model/connection_status.dart';
+import 'package:hiddify/features/profile/data/profile_data_providers.dart';
+import 'package:hiddify/features/profile/data/profile_path_resolver.dart';
 import 'package:hiddify/features/profile/model/profile_entity.dart';
 import 'package:hiddify/features/profile/notifier/active_profile_notifier.dart';
 import 'package:hiddify/features/profile/notifier/profiles_update_notifier.dart';
@@ -263,12 +265,35 @@ class ConnectionNotifier extends _$ConnectionNotifier with AppLogger {
     );
   }
 
+  /// Конфиг активного профиля лежит файлом в общей папке приложения
+  /// (`.../files/configs/<id>.json`). Файл может исчезнуть, а запись профиля —
+  /// остаться: чистильщики памяти и «очистка данных» выметают этот каталог,
+  /// внешнее хранилище бывает временно недоступно. Тогда ядро падает на старте
+  /// с «no such file or directory», и пользователь видит непонятный сбой при
+  /// живой подписке. Перекачиваем профиль по той же ссылке: upsertRemote
+  /// обновляет запись с ТЕМ ЖЕ id и заново пишет файл.
+  Future<void> _ensureProfileFile(ProfileEntity profile) async {
+    if (profile is! RemoteProfileEntity) return;
+    final dirs = ref.read(appDirectoriesProvider).valueOrNull;
+    if (dirs == null) return;
+    try {
+      if (await ProfilePathResolver(dirs.workingDir).file(profile.id).exists()) return;
+      loggy.warning("config file for profile [${profile.id}] is missing, re-downloading");
+      await ref.read(profileRepositoryProvider).requireValue.upsertRemote(profile.url).run();
+    } catch (e) {
+      // Не мешаем подключению: если восстановить не вышло, дальше будет обычная
+      // ошибка старта ядра — уже с внятным текстом.
+      loggy.warning("failed to restore profile file: $e");
+    }
+  }
+
   Future<void> _connectThrottled() async {
     final activeProfile = await ref.read(activeProfileProvider.future);
     if (activeProfile == null) {
       loggy.info("no active profile, not connecting");
       return;
     }
+    await _ensureProfileFile(activeProfile);
     await _connectionRepo.connect(activeProfile, ref.read(Preferences.disableMemoryLimit)).mapLeft((
       ConnectionFailure err,
     ) async {
