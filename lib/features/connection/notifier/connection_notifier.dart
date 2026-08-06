@@ -7,6 +7,7 @@ import 'package:hiddify/core/preferences/general_preferences.dart';
 import 'package:hiddify/core/router/dialog/dialog_notifier.dart';
 import 'package:hiddify/core/directories/directories_provider.dart';
 import 'package:hiddify/core/utils/windows_privileges.dart';
+import 'package:hiddify/features/connection/notifier/mode_picker.dart';
 import 'package:hiddify/features/connection/data/connection_data_providers.dart';
 import 'package:hiddify/features/connection/data/connection_repository.dart';
 import 'package:hiddify/features/connection/model/connection_failure.dart';
@@ -68,6 +69,11 @@ class ConnectionNotifier extends _$ConnectionNotifier with AppLogger {
         unawaited(
           ref.read(foregroundProfilesUpdateNotifierProvider.notifier).triggerIfDue(),
         );
+
+        // Первое в жизни приложения подключение: проверяем, доходит ли трафик,
+        // и при необходимости молча перебираем режимы. Дальше режим — ручной
+        // выбор пользователя, сюда больше не заходим.
+        unawaited(ModePicker(ref).runIfFirstRun());
 
         if (_userInitiatedConnect) {
           _userInitiatedConnect = false;

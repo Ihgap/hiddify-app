@@ -11,6 +11,7 @@ import 'package:hiddify/core/theme/theme_extensions.dart';
 import 'package:hiddify/core/widget/animated_text.dart';
 import 'package:hiddify/features/connection/model/connection_status.dart';
 import 'package:hiddify/features/connection/notifier/connection_notifier.dart';
+import 'package:hiddify/features/connection/notifier/mode_picker.dart';
 import 'package:hiddify/features/connection/notifier/pause_notifier.dart';
 import 'package:hiddify/features/profile/notifier/active_profile_notifier.dart';
 import 'package:hiddify/features/proxy/active/active_proxy_notifier.dart';
@@ -34,6 +35,10 @@ class ConnectionButton extends HookConsumerWidget {
     // т.к. в этом состоянии ядро Disconnected).
     final paused = ref.watch(pausedProvider);
     const pausedColor = Color(0xFFE0A300);
+    // Автоподбор рабочего режима на первом включении: под ним ядро несколько
+    // раз перезапускается, и показывать эту возню пользователю незачем — он
+    // видит один жёлтый статус «Выбор режима», как при «Паузе».
+    final picking = ref.watch(modePickingProvider);
     final activeProxy = ref.watch(activeProxyNotifierProvider);
     final delay = activeProxy.valueOrNull?.urlTestDelay ?? 0;
 
@@ -131,7 +136,11 @@ class ConnectionButton extends HookConsumerWidget {
       secureLabel = "";
     }
     return _ConnectionButton(
-      onTap: switch (connectionStatus) {
+      // Во время подбора кнопка не реагирует: тап посреди перебора оборвал бы
+      // его на полпути и оставил случайный режим.
+      onTap: picking
+          ? () {}
+          : switch (connectionStatus) {
         AsyncData(value: Connected()) when requiresReconnect == true => () async {
           final activeProfile = await ref.read(activeProfileProvider.future);
           return await ref.read(connectionNotifierProvider.notifier).reconnect(activeProfile);
@@ -156,11 +165,14 @@ class ConnectionButton extends HookConsumerWidget {
         },
         _ => () {},
       },
-      enabled: switch (connectionStatus) {
-        AsyncData(value: Connected()) || AsyncData(value: Disconnected()) || AsyncError() => true,
-        _ => false,
-      },
-      label: paused
+      enabled: !picking &&
+          switch (connectionStatus) {
+            AsyncData(value: Connected()) || AsyncData(value: Disconnected()) || AsyncError() => true,
+            _ => false,
+          },
+      label: picking
+          ? "Выбор режима"
+          : paused
           ? "Пауза"
           : switch (connectionStatus) {
               AsyncData(value: Connected()) when requiresReconnect == true => t.connection.reconnect,
@@ -168,7 +180,7 @@ class ConnectionButton extends HookConsumerWidget {
               AsyncData(value: final status) => status.present(t),
               _ => "",
             },
-      buttonColor: paused
+      buttonColor: picking || paused
           ? pausedColor
           : switch (connectionStatus) {
               AsyncData(value: Connected()) when requiresReconnect == true => Colors.teal,
@@ -188,7 +200,7 @@ class ConnectionButton extends HookConsumerWidget {
         AsyncData(value: Connected()) => Assets.images.connectNorouz,
         _ => Assets.images.disconnectNorouz,
       },
-      newButtonColor: paused
+      newButtonColor: picking || paused
           ? pausedColor
           : switch (connectionStatus) {
               AsyncData(value: Connected()) when requiresReconnect == true => Colors.teal,
@@ -198,13 +210,14 @@ class ConnectionButton extends HookConsumerWidget {
               AsyncData(value: _) => buttonTheme.idleColor!,
               _ => Colors.red,
             },
-      animated: switch (connectionStatus) {
-        AsyncData(value: Connected()) when requiresReconnect == true => false,
-        AsyncData(value: Connected()) when delay <= 0 || delay >= 65000 => false,
-        AsyncData(value: Connected()) => true,
-        AsyncData(value: _) => true,
-        _ => false,
-      },
+      animated: picking ||
+          switch (connectionStatus) {
+            AsyncData(value: Connected()) when requiresReconnect == true => false,
+            AsyncData(value: Connected()) when delay <= 0 || delay >= 65000 => false,
+            AsyncData(value: Connected()) => true,
+            AsyncData(value: _) => true,
+            _ => false,
+          },
       useImage: today.day >= 19 && today.day <= 23 && today.month == 3,
       secureLabel: secureLabel,
       isInitialLoad: isInitialLoad,

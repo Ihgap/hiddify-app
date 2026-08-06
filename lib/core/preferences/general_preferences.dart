@@ -81,6 +81,10 @@ abstract class Preferences {
 
   static final silentStart = PreferencesNotifier.create<bool, bool>("silent_start", false);
 
+  /// Рабочий режим уже подобран автоматически на первом включении.
+  /// Дальше режим меняет только пользователь руками — повторных подборов нет.
+  static final vpnModePicked = PreferencesNotifier.create<bool, bool>("vpn_mode_picked", false);
+
   /// Поднимать туннель сразу при запуске приложения, без нажатия кнопки.
   /// Сервер берётся последний выбранный — он и так хранится в активном профиле
   /// и в выборе ядра, отдельно запоминать нечего.
