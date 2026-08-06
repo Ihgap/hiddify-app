@@ -18,8 +18,9 @@ void _log(String msg) {
 }
 
 /// Ключ в SharedPreferences: id профиля, которым управляет автоподписка.
-/// Нужен, чтобы не плодить дубли и знать, что мигрировать после привязки.
-const _managedProfileKey = 'app_managed_profile_id';
+/// Нужен, чтобы не плодить дубли, знать, что мигрировать после привязки, и
+/// отличать наш профиль от добавленных пользователем вручную.
+const managedProfileKey = 'app_managed_profile_id';
 
 /// Синхронизация встроенной подписки с бэкендом бота.
 ///
@@ -84,7 +85,7 @@ final subscriptionSyncProvider = FutureProvider<AppTrialResult?>((ref) async {
     final dataSource = ref.read(profileDataSourceProvider);
 
     // текущий управляемый профиль (если был)
-    final managedId = prefs.getString(_managedProfileKey);
+    final managedId = prefs.getString(managedProfileKey);
     ProfileEntity? managed;
     if (managedId != null) {
       managed = (await repo.getById(managedId).run()).getOrElse((_) => null);
@@ -112,7 +113,7 @@ final subscriptionSyncProvider = FutureProvider<AppTrialResult?>((ref) async {
           await repo.deleteById(managed.id, false).run();
           _log('deleted old managed profile ${managed.id}');
         }
-        await prefs.setString(_managedProfileKey, newProfile.id);
+        await prefs.setString(managedProfileKey, newProfile.id);
         await repo.setAsActive(newProfile.id).run();
         _log('migrated profile ${managed?.id} -> ${newProfile.id}');
       }
@@ -120,7 +121,7 @@ final subscriptionSyncProvider = FutureProvider<AppTrialResult?>((ref) async {
 
     // Чистим «призраки»: любые профили с именем приложения, кроме текущего
     // управляемого (накопились из-за прерванных синков или старых версий кода).
-    final currentManagedId = prefs.getString(_managedProfileKey);
+    final currentManagedId = prefs.getString(managedProfileKey);
     if (currentManagedId != null) {
       final allProfiles = await dataSource
           .watchAll(sort: ProfilesSort.lastUpdate, sortMode: SortMode.ascending)

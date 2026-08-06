@@ -5,6 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hiddify/core/localization/translations.dart';
+import 'package:hiddify/core/preferences/preferences_provider.dart';
+import 'package:hiddify/features/app_trial/app_trial_controller.dart';
 import 'package:hiddify/core/model/constants.dart';
 import 'package:hiddify/core/model/failures.dart';
 import 'package:hiddify/core/notification/in_app_notification_controller.dart';
@@ -181,7 +183,7 @@ class ProfileTile extends HookConsumerWidget {
                               RemainingTrafficIndicator(subInfo.ratio),
                               const Gap(4),
                             ],
-                            ProfileSubscriptionInfo(subInfo),
+                            ProfileSubscriptionInfo(subInfo, profileId: profile.id),
                             const Gap(4),
                           ],
                         ],
@@ -334,21 +336,31 @@ class ProfileActionsMenu extends HookConsumerWidget {
 
 // TODO add support url
 class ProfileSubscriptionInfo extends HookConsumerWidget {
-  const ProfileSubscriptionInfo(this.subInfo, {super.key});
+  const ProfileSubscriptionInfo(this.subInfo, {super.key, this.profileId});
 
   final SubscriptionInfo subInfo;
 
-  (String, Color?) remainingText(TranslationsEn t, ThemeData theme, bool onReserve) {
-    if (subInfo.isExpired) {
+  /// id профиля, которому принадлежит эта строка. Нужен, чтобы подменять срок
+  /// только у профиля автоподписки и не трогать профили, добавленные вручную.
+  final String? profileId;
+
+  (String, Color?) remainingText(
+    TranslationsEn t,
+    ThemeData theme,
+    bool onReserve,
+    Duration remaining,
+    bool expired,
+  ) {
+    if (expired) {
       return (t.components.subscriptionInfo.expired, theme.colorScheme.error);
     } else if (onReserve && subInfo.ratio >= 1) {
       // «Трафик закончился» — только про лимит «по спискам»: на обычных серверах
       // трафик безлимитный, исчерпание резерва не должно менять надпись о сроке.
       return (t.components.subscriptionInfo.noTraffic, theme.colorScheme.error);
-    } else if (subInfo.remaining.inDays > 365) {
+    } else if (remaining.inDays > 365) {
       return (t.components.subscriptionInfo.remainingDuration(duration: "∞"), null);
     } else {
-      return (t.components.subscriptionInfo.remainingDuration(duration: subInfo.remaining.inDays), null);
+      return (t.components.subscriptionInfo.remainingDuration(duration: remaining.inDays), null);
     }
   }
 
@@ -361,7 +373,27 @@ class ProfileSubscriptionInfo extends HookConsumerWidget {
     // (§reserve§): ограничен только его трафик, у остальных — безлимит.
     final onReserve = ref.watch(onReserveProvider);
 
-    final remaining = remainingText(t, theme, onReserve);
+    // Срок из профиля берётся из заголовка его же ссылки подписки. После
+    // привязки Telegram ссылка меняется, но миграция профиля откладывается,
+    // пока поднят туннель — и до неё в профиле лежит срок СТАРОЙ подписки.
+    // Тогда на одном экране одновременно «активна до 2027» из ответа бэкенда и
+    // «осталось 6 дней» отсюда. Бэкенд знает настоящий срок — берём его.
+    //
+    // Только для профиля автоподписки: у добавленных вручную профилей свой срок,
+    // и подменять его нельзя. Заголовок subscription-userinfo, который читают
+    // сторонние клиенты, эта правка не затрагивает — она чисто про отрисовку.
+    Duration remainingDur = subInfo.remaining;
+    bool expired = subInfo.isExpired;
+    final managedId = ref.watch(sharedPreferencesProvider).valueOrNull?.getString(managedProfileKey);
+    if (profileId != null && profileId == managedId) {
+      final backendExpire = ref.watch(subscriptionSyncProvider).valueOrNull?.expiresAt;
+      if (backendExpire != null) {
+        remainingDur = backendExpire.difference(DateTime.now());
+        expired = remainingDur.isNegative;
+      }
+    }
+
+    final remaining = remainingText(t, theme, onReserve, remainingDur, expired);
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
