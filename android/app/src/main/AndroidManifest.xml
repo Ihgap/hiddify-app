@@ -138,6 +138,13 @@
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="proxy" />
         </service>
+        <!-- Автовосстановление после перехвата VPN-слота другим приложением:
+             тикает по будильнику, пока слот занят чужим туннелем, и поднимает
+             наш сервис, когда слот освободился. -->
+        <receiver
+            android:name=".bg.RevokeRecoveryReceiver"
+            android:exported="false" />
+
         <!-- Домашний виджет 1x1: включает/выключает VPN -->
         <receiver
             android:name=".bg.VpnToggleWidget"

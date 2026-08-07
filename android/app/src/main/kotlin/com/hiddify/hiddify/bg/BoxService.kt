@@ -424,11 +424,18 @@ class BoxService(
         }
     }
 
+    private var revokedBySystem = false
+
     private fun stopService() {
         if (status.value == Status.Stopped) return
         status.value = Status.Stopping
         setPausedMarker(false)
         cancelWatchdog()
+        // Явная остановка (кнопка «Стоп», из приложения) отменяет автовосстановление
+        // после revoke; при остановке ИЗ-ЗА revoke маркер только что поставлен —
+        // не трогаем.
+        if (!revokedBySystem) RevokeRecovery.clear(service)
+        revokedBySystem = false
         if (receiverRegistered) {
             service.unregisterReceiver(receiver)
             receiverRegistered = false
@@ -579,6 +586,9 @@ class BoxService(
 
         GlobalScope.launch(Dispatchers.IO) {
             Settings.startedByUser = true
+            // Сервис стартует — состояние «отобрано другим VPN» больше не актуально
+            // (снимает маркер, будильники и уведомление RevokeRecovery).
+            RevokeRecovery.clear(service)
             // Системный перезапуск (START_STICKY → intent == null): Flutter не
             // участвует, поэтому ядро надо поднять самим (иначе служба возродится,
             // но туннель — нет). При обычном старте флаг не трогаем (ядро поднимает
@@ -599,6 +609,11 @@ class BoxService(
     }
 
     fun onRevoke() {
+        // Система отдала VPN-слот другому приложению (Android держит только один
+        // активный VPN). Не молчим: уведомление с причиной + фоновое
+        // автовосстановление, когда слот освободится (см. RevokeRecovery).
+        revokedBySystem = true
+        RevokeRecovery.onRevoked(service)
         stopService()
     }
 
