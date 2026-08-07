@@ -70,6 +70,13 @@ class BoxService(
         // HTTPS (не generate_204 по http): cleartext разрешён только для 127.0.0.1.
         private const val WATCHDOG_PROBE_URL = "https://connectivitycheck.gstatic.com/generate_204"
 
+        // Жив ли экземпляр сервиса: RevokeRecovery живому шлёт SERVICE_RESUME
+        // (рестарт из foreground-контекста разрешён), мёртвому пробует полный
+        // старт (из фона на Android 12+, скорее всего, будет отклонён — тогда
+        // остаётся кнопка в уведомлении).
+        @Volatile
+        var serviceAlive = false
+
         private var initializeOnce = false
         private lateinit var workingDir: File
         private fun initialize() {
@@ -288,6 +295,9 @@ class BoxService(
         try {
             status.postValue(Status.Starting)
             setPausedMarker(false)
+            // Любой старт ядра снимает состояние «отобрано другим VPN»
+            // (маркер, будильники и уведомление RevokeRecovery).
+            RevokeRecovery.clear(service)
             Log.d(TAG, "starting service")
             withContext(Dispatchers.Main) {
                 notification.show(activeProfileName, R.string.status_starting)
@@ -424,18 +434,15 @@ class BoxService(
         }
     }
 
-    private var revokedBySystem = false
-
     private fun stopService() {
         if (status.value == Status.Stopped) return
         status.value = Status.Stopping
         setPausedMarker(false)
         cancelWatchdog()
-        // Явная остановка (кнопка «Стоп», из приложения) отменяет автовосстановление
-        // после revoke; при остановке ИЗ-ЗА revoke маркер только что поставлен —
-        // не трогаем.
-        if (!revokedBySystem) RevokeRecovery.clear(service)
-        revokedBySystem = false
+        // Явная остановка («Стоп», из приложения) отменяет автовосстановление
+        // после revoke — с сознательным выбором пользователя не спорим.
+        RevokeRecovery.clear(service)
+        serviceAlive = false
         if (receiverRegistered) {
             service.unregisterReceiver(receiver)
             receiverRegistered = false
@@ -551,12 +558,15 @@ class BoxService(
         // START_STICKY: если систему/прошивку убьёт службу — Android попытается её
         // перезапустить (intent == null). Так VPN восстанавливается сам, без захода
         // в приложение.
+        serviceAlive = true
         if (status.value != Status.Stopped) {
-            // Сервис уже запущен. Если VPN был на паузе, а Flutter инициирует
-            // подключение — сбрасываем состояние паузы (маркер-файл + уведомление),
-            // иначе уведомление навсегда застрянет на «Пауза».
-            if (pausedMarkerFile().exists()) {
+            // Сервис уже запущен. Если VPN был на паузе (кнопкой или после
+            // revoke), а Flutter инициирует подключение — сбрасываем состояние
+            // паузы (маркеры + уведомление), иначе уведомление навсегда
+            // застрянет на «Пауза».
+            if (pausedMarkerFile().exists() || RevokeRecovery.isRevoked()) {
                 setPausedMarker(false)
+                RevokeRecovery.clear(service)
                 GlobalScope.launch(Dispatchers.Main) { notification.setPaused(false) }
                 // Перезапускаем polling скорости/аутбаунда: ядро ещё не поднялось
                 // (Flutter стартует его после onStartCommand), поэтому ждём.
@@ -586,9 +596,6 @@ class BoxService(
 
         GlobalScope.launch(Dispatchers.IO) {
             Settings.startedByUser = true
-            // Сервис стартует — состояние «отобрано другим VPN» больше не актуально
-            // (снимает маркер, будильники и уведомление RevokeRecovery).
-            RevokeRecovery.clear(service)
             // Системный перезапуск (START_STICKY → intent == null): Flutter не
             // участвует, поэтому ядро надо поднять самим (иначе служба возродится,
             // но туннель — нет). При обычном старте флаг не трогаем (ядро поднимает
@@ -605,16 +612,34 @@ class BoxService(
     }
 
     fun onDestroy() {
+        serviceAlive = false
         binder.close()
     }
 
     fun onRevoke() {
         // Система отдала VPN-слот другому приложению (Android держит только один
-        // активный VPN). Не молчим: уведомление с причиной + фоновое
-        // автовосстановление, когда слот освободится (см. RevokeRecovery).
-        revokedBySystem = true
+        // активный VPN). Сервис НЕ гасим: старт foreground-сервиса из фона
+        // Android 12+ запрещает, поэтому после полной остановки восстановиться
+        // без участия пользователя нельзя (ровно об это споткнулся сам WireGuard —
+        // «Background start not allowed» в логах). Вместо этого уходим в паузу:
+        // ядро стоит, TUN закрыт, сервис жив — живому сервису переподнять туннель
+        // разрешено в любой момент. RevokeRecovery шлёт SERVICE_RESUME, когда
+        // чужой VPN освобождает слот.
+        cancelWatchdog()
+        notification.setPaused(true)
         RevokeRecovery.onRevoked(service)
-        stopService()
+        GlobalScope.launch(Dispatchers.IO) {
+            try {
+                val pfd = fileDescriptor
+                if (pfd != null) {
+                    pfd.close()
+                    fileDescriptor = null
+                }
+                Mobile.stop()
+            } catch (e: Exception) {
+                Log.w(TAG, "revoke pause failed", e)
+            }
+        }
     }
 
     internal fun sendNotification(notification: Notification) {

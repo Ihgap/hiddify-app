@@ -17,6 +17,7 @@ import com.hiddify.hiddify.Application
 import com.hiddify.hiddify.MainActivity
 import com.hiddify.hiddify.R
 import com.hiddify.hiddify.Settings
+import com.hiddify.hiddify.constant.Action
 import java.io.File
 
 /// Реакция на onRevoke: Android держит только один активный VPN, и когда другое
@@ -42,6 +43,12 @@ object RevokeRecovery {
     private const val GIVE_UP_AFTER_MS = 12 * 60 * 60 * 1000L
 
     private fun markerFile() = File(Settings.baseDir, "revoked.flag")
+
+    fun isRevoked(): Boolean = try {
+        markerFile().exists()
+    } catch (_: Exception) {
+        false
+    }
 
     private fun alarmPendingIntent(context: Context): PendingIntent =
         PendingIntent.getBroadcast(
@@ -141,12 +148,22 @@ object RevokeRecovery {
 
         Log.w(TAG, "VPN-слот свободен → восстанавливаем туннель")
         try {
-            // Flutter в этой цепочке не участвует — ядро поднимает сам сервис
-            // (тот же приём, что при START_STICKY-рестарте).
-            Settings.startCoreAfterStartingService = true
-            BoxService.start()
-            // Маркер и уведомление снимет onStartCommand через clear(); если
-            // старт не удался — следующий тик попробует снова.
+            if (BoxService.serviceAlive) {
+                // Сервис пережил revoke в паузе — будим штатным резюмом
+                // (эквивалент кнопки «Возобновить»): живому foreground-сервису
+                // рестарт ядра и TUN разрешён без фоновых ограничений.
+                context.sendBroadcast(
+                    Intent(Action.SERVICE_RESUME).setPackage(context.packageName)
+                )
+            } else {
+                // Сервис успела добить система — пробуем полный старт. На
+                // Android 12+ старт FGS из фона, скорее всего, отклонят — тогда
+                // остаётся кнопка «Восстановить» в уведомлении.
+                Settings.startCoreAfterStartingService = true
+                BoxService.start()
+            }
+            // Маркер и уведомление снимет startService() через clear(); если
+            // возобновление не удалось — следующий тик попробует снова.
         } catch (e: Exception) {
             Log.w(TAG, "recovery start failed", e)
         }
