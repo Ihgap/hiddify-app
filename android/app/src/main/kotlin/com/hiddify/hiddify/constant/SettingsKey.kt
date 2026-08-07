@@ -26,6 +26,11 @@ object SettingsKey {
 
     const val START_CORE_ON_STARTING_SERVICE = "${KEY_PREFIX}starting_core_on_starting_service"
 
+    // Идёт автоподбор VPN-режима (ModePicker, Dart): на это время приложение
+    // НЕ исключается из собственного туннеля, чтобы пробы доступности
+    // (Телеграм и контрольная) шли через проверяемый TUN-стек.
+    const val VPN_MODE_PROBING = "${KEY_PREFIX}vpn_mode_probing"
+
     const val WORKING_DIR = "working_dir"
     const val BASE_DIR = "base_dir"
     const val TMP_DIR = "tmp_dir"

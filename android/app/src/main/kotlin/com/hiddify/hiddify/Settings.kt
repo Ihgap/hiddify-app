@@ -86,6 +86,12 @@ object Settings {
         set(value) =
             preferences.edit().putBoolean(SettingsKey.SYSTEM_PROXY_ENABLED, value).apply()
 
+    // Флаг пишет Dart-сторона (Preferences.vpnModeProbing) на время автоподбора
+    // режима. Только чтение: сервис по нему решает, исключать ли собственный
+    // пакет из туннеля (VPNService.openTun).
+    val vpnModeProbing: Boolean
+        get() = preferences.getBoolean(SettingsKey.VPN_MODE_PROBING, false)
+
     var startedByUser: Boolean
         get() = preferences.getBoolean(SettingsKey.STARTED_BY_USER, false)
         set(value) = preferences.edit().putBoolean(SettingsKey.STARTED_BY_USER, value).apply()

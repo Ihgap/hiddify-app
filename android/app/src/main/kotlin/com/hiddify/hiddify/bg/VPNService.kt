@@ -67,11 +67,25 @@ class VPNService : VpnService(), PlatformInterfaceWrapper {
     }
 
     fun addExcludePackage(builder: Builder, packageName: String) {
-        try {     
+        try {
             Log.d("VpnService","Excluding $packageName")
             builder.addDisallowedApplication(packageName)
         } catch (e: NameNotFoundException) {
         }
+    }
+
+    // Обычно собственный пакет исключается из туннеля (запросы приложения —
+    // подписка, платежи — идут напрямую и работают даже при мёртвом туннеле).
+    // Но исключённое приложение Android не пускает в VPN-сеть вовсе, поэтому
+    // на время автоподбора режима (ModePicker) исключение снимается — иначе
+    // пробы доступности уходили бы мимо проверяемого TUN-стека. Петли нет:
+    // сокеты ядра защищены через protect() (autoDetectInterfaceControl).
+    private fun addSelfExcludeUnlessProbing(builder: Builder) {
+        if (Settings.vpnModeProbing) {
+            Log.d("VpnService", "mode probing: keeping self inside the tunnel")
+            return
+        }
+        addExcludePackage(builder, packageName)
     }
 
     override fun openTun(options: TunOptions): Int {
@@ -171,7 +185,7 @@ class VPNService : VpnService(), PlatformInterfaceWrapper {
                     appList.forEach {
                         addExcludePackage(builder,it)
                     }
-                    addExcludePackage(builder,packageName)
+                    addSelfExcludeUnlessProbing(builder)
                 }
             } else {
                 val includePackage = options.includePackage
@@ -188,9 +202,9 @@ class VPNService : VpnService(), PlatformInterfaceWrapper {
                         }
                     }
 
-                    addExcludePackage(builder, packageName)
+                    addSelfExcludeUnlessProbing(builder)
                 }
-                
+
             }
         }
 

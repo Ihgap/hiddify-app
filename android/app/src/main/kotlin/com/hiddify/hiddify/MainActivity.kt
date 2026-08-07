@@ -79,8 +79,10 @@ class MainActivity : FlutterFragmentActivity(), ServiceConnection.Callback {
                     // решает по правилам, отправить его на сервер или напрямую.
                     // Поэтому флаг отвечает ровно на наш вопрос «стек работает?»
                     // и не зависит ни от geoip-правил, ни от «только зарубежного
-                    // трафика». Проба самого приложения так не умеет: своё
-                    // приложение исключено из туннеля (VPNService.openTun).
+                    // трафика». Обычно проба самого приложения так не умеет:
+                    // оно исключено из туннеля (VPNService.openTun) — кроме
+                    // окна автоподбора режима, когда исключение снято и Dart
+                    // дополняет этот флаг TLS-пробами Телеграма (ModePicker).
                     "isVpnValidated" -> {
                         val cm = getSystemService(ConnectivityManager::class.java)
                         var validated = false
