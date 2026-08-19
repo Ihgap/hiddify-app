@@ -9,6 +9,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
+import android.os.SystemClock
 import android.util.Log
 import android.widget.RemoteViews
 import androidx.annotation.StringRes
@@ -171,7 +172,11 @@ class ServiceNotification(private val status: MutableLiveData<Status>, private v
 
 
     suspend fun start() {
-        if (Settings.dynamicNotification && checkPermission()) {
+        // Опрос ядра нужен всегда, независимо от «Отображать скорость в
+        // уведомлении»: в шторке должен быть виден текущий сервер, а не
+        // статичное «Service started». Настройка влияет только на строку со
+        // скоростью и на частоту опроса (см. updateStatus/startListenSystemInfo).
+        if (checkPermission()) {
 //            commandClient.connect()
             startListenSystemInfo()
             withContext(Dispatchers.Main) {
@@ -191,13 +196,32 @@ class ServiceNotification(private val status: MutableLiveData<Status>, private v
         receiverRegistered = true
     }
 
-    fun updateStatus(previous:SystemInfo,status: SystemInfo) {
-        val uplink=status.uplink_total - previous.uplink_total
-        val downlink=status.downlink_total - previous.downlink_total
-        val speed = "${Libbox.formatBytes(uplink)}/s ↑\t${Libbox.formatBytes(downlink)}/s ↓"
+    fun updateStatus(previous: SystemInfo, status: SystemInfo, elapsedMs: Long = 1_000L) {
         val title = "${status.current_profile}"
-        // url-test группу "lowest" показываем как «Авто».
-        val outbound = status.current_outbound.replace("lowest", "Авто")
+        // url-test группу "lowest" показываем как «Авто», служебные метки тега
+        // (§reserve§ и т.п.) в шторку не пускаем — человеку они ничего не говорят.
+        val outbound = status.current_outbound
+            .replace("lowest", "Авто")
+            .replace(Regex("§[^§]*§"), "")
+            .trim()
+        if (!Settings.dynamicNotification) {
+            // Скорость выключена в настройках — показываем, к какому серверу
+            // подключены, в обоих видах уведомления.
+            Application.notificationManager.notify(
+                    notificationId,
+                    notificationBuilder
+                            .setCustomContentView(buildContentView(R.layout.notification_vpn, title, outbound))
+                            .setCustomBigContentView(buildContentView(R.layout.notification_vpn_big, title, outbound))
+                            .build()
+            )
+            return
+        }
+        // Делим на фактический интервал между опросами: он зависит от настройки,
+        // а «/s» в тексте должно оставаться правдой при любой частоте.
+        val seconds = elapsedMs.coerceAtLeast(1L).toDouble() / 1000.0
+        val uplink = ((status.uplink_total - previous.uplink_total) / seconds).toLong()
+        val downlink = ((status.downlink_total - previous.downlink_total) / seconds).toLong()
+        val speed = "${Libbox.formatBytes(uplink)}/s ↑\t${Libbox.formatBytes(downlink)}/s ↓"
         // Свёрнутое: только скорость (одна строка, без обрезки).
         // Развёрнутое: скорость + текущий сервер.
         Application.notificationManager.notify(
@@ -249,13 +273,18 @@ class ServiceNotification(private val status: MutableLiveData<Status>, private v
             while (isActive) {
                 try {
                     var previous = coreClient.GetSystemInfo().executeBlocking(Empty())
+                    var previousAt = SystemClock.elapsedRealtime()
                     retries = 0
 
                     while (isActive) {
-                        delay(1_000)
+                        // Со скоростью — раз в секунду; без неё в шторке меняется
+                        // только имя сервера, там частый опрос ядра не нужен.
+                        delay(if (Settings.dynamicNotification) 1_000 else 3_000)
                         val current = coreClient.GetSystemInfo().executeBlocking(Empty())
-                        updateStatus(previous, current)
+                        val now = SystemClock.elapsedRealtime()
+                        updateStatus(previous, current, now - previousAt)
                         previous = current
+                        previousAt = now
                     }
                 } catch (e: CancellationException) {
                     Log.d("notification", "SystemInfo polling cancelled")

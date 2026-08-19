@@ -76,8 +76,11 @@ object Settings {
         set(value) =
             preferences.edit().putBoolean(SettingsKey.DISABLE_MEMORY_LIMIT, value).apply()
 
+    // По умолчанию выключено — как и на Dart-стороне (Preferences.dynamicNotification).
+    // Раньше здесь стоял true, и у нового пользователя переключатель в настройках
+    // показывал «выкл», а скорость в шторке при этом шла.
     var dynamicNotification: Boolean
-        get() = preferences.getBoolean(SettingsKey.DYNAMIC_NOTIFICATION, true)
+        get() = preferences.getBoolean(SettingsKey.DYNAMIC_NOTIFICATION, false)
         set(value) =
             preferences.edit().putBoolean(SettingsKey.DYNAMIC_NOTIFICATION, value).apply()
 
