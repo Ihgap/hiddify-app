@@ -92,9 +92,25 @@ abstract class Preferences {
   static final vpnModeProbing = PreferencesNotifier.create<bool, bool>("vpn_mode_probing", false);
 
   /// Поднимать туннель сразу при запуске приложения, без нажатия кнопки.
-  /// Сервер берётся последний выбранный — он и так хранится в активном профиле
-  /// и в выборе ядра, отдельно запоминать нечего.
+  /// Сервер берётся из [lastSelectedServer] — см. комментарий там, почему
+  /// на выбор ядра полагаться нельзя.
   static final connectOnStart = PreferencesNotifier.create<bool, bool>("connect_on_start", false);
+
+  /// Сервер, выбранный пользователем ВРУЧНУЮ последним: `tagDisplay` (имя без
+  /// служебных меток) или `lowest` для «Автоматически». Пусто — выбора не было.
+  ///
+  /// Нужен потому, что собственная память ядра для этого не годится. sing-box
+  /// хранит выбор в `data/clash.db` целым тегом аутбаунда, а тег несёт номер
+  /// позиции в подписке (`«🇫🇮 Финляндия ⚡️ § 0»`, см. ray2sing convert.go).
+  /// Подписка приходит с перетасованной головой, и после каждого её обновления
+  /// у того же сервера другой номер → сохранённый тег в конфиге не находится →
+  /// ядро молча берёт `default` (= `balance`), а App подменяет его на `lowest`,
+  /// то есть «Авто». Именно так автозапуск после перезагрузки терял выбор.
+  ///
+  /// Пишется ТОЛЬКО из ручного выбора. Автоматические переключения
+  /// (ShutdownFailover: уход на «резерв» и возврат) сюда не попадают — иначе
+  /// они бы затирали то, что выбрал человек.
+  static final lastSelectedServer = PreferencesNotifier.create<String, String>("last_selected_server", "");
 
   static final disableMemoryLimit = PreferencesNotifier.create<bool, bool>(
     "disable_memory_limit",

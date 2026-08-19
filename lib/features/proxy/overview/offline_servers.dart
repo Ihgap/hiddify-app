@@ -1,9 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
+import 'package:hiddify/core/preferences/general_preferences.dart';
 import 'package:hiddify/features/connection/notifier/connection_notifier.dart';
 import 'package:hiddify/features/profile/data/profile_data_providers.dart';
 import 'package:hiddify/features/profile/notifier/active_profile_notifier.dart';
 import 'package:hiddify/features/proxy/active/ip_widget.dart';
+import 'package:hiddify/features/proxy/overview/known_delays.dart';
 import 'package:hiddify/utils/utils.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
@@ -11,6 +15,17 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 /// как ядро поднимется. null — ничего не ждём. Хранит выбор между состоянием
 /// «отключено» и моментом, когда прокси станут доступны.
 final pendingServerSelectionProvider = StateProvider<String?>((ref) => null);
+
+/// Запомнить РУЧНОЙ выбор сервера, чтобы вернуть его после перезапуска
+/// приложения (см. [Preferences.lastSelectedServer] — память ядра для этого
+/// не годится). [tagDisplay] — имя без служебных меток либо `lowest` («Авто»).
+///
+/// Вызывать только из мест, где сервер выбрал человек. Автопереключения
+/// (ShutdownFailover) идут мимо: они ставят [pendingServerSelectionProvider]
+/// напрямую, чтобы не затирать выбор пользователя.
+void rememberManualServer(WidgetRef ref, String tagDisplay) {
+  unawaited(ref.read(Preferences.lastSelectedServer.notifier).update(tagDisplay));
+}
 
 /// Список серверов из сохранённой подписки — без запущенного ядра.
 ///
@@ -48,7 +63,8 @@ final offlineServersProvider = FutureProvider.autoDispose<List<String>>((ref) as
 /// Убирает служебные метки (§reserve§, §hide§, …) из отображаемого имени —
 /// как _sanitizedTag в proxy_entity и TrimTagName в ядре. offlineServersProvider
 /// отдаёт сырые имена (метка нужна ShutdownFailover), поэтому чистим в UI/выборе.
-String _stripTagMarks(String tag) => tag.replaceFirst(RegExp(r"\§[^]*"), "").trimRight();
+/// Публичная: тем же списком серверов пользуется ProfilesModal.
+String stripTagMarks(String tag) => tag.replaceFirst(RegExp(r"\§[^]*"), "").trimRight();
 
 /// Read-only список серверов, когда VPN отключён (ядро не запущено).
 /// Выбор сервера и пинг доступны только при подключении — это ограничение
@@ -84,7 +100,7 @@ class OfflineServerList extends ConsumerWidget {
               const Gap(8),
               Expanded(
                 child: Text(
-                  'Нажмите на сервер, чтобы подключиться к нему. Пинг появится после подключения.',
+                  'Нажмите на сервер, чтобы подключиться к нему. Пинг — по последнему замеру, свежий появится после подключения.',
                   style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSecondaryContainer),
                 ),
               ),
@@ -99,6 +115,7 @@ class OfflineServerList extends ConsumerWidget {
             itemBuilder: (context, index) {
               // Запоминаем выбор и поднимаем VPN; применит listener в App.
               void connect(String pendingTagDisplay, String label) {
+                rememberManualServer(ref, pendingTagDisplay);
                 ref.read(pendingServerSelectionProvider.notifier).state = pendingTagDisplay;
                 ref.read(connectionNotifierProvider.notifier).toggleConnection();
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -121,11 +138,18 @@ class OfflineServerList extends ConsumerWidget {
               // pendingServerSelectionProvider, где App матчит по tagDisplay
               // (тоже без метки), иначе резерв вручную не выбрался бы.
               final rawName = names[index - 1];
-              final display = _stripTagMarks(rawName);
+              final display = stripTagMarks(rawName);
               return ListTile(
                 leading: IPCountryFlag(countryCode: countryCodeFromFlagEmoji(display), size: 40),
                 title: Text(display, overflow: TextOverflow.ellipsis),
-                trailing: const Icon(Icons.power_settings_new_rounded, size: 20),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    KnownDelayLabel(serverName: display),
+                    const Gap(10),
+                    const Icon(Icons.power_settings_new_rounded, size: 20),
+                  ],
+                ),
                 onTap: () => connect(display, display),
               );
             },

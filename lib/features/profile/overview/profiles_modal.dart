@@ -8,6 +8,7 @@ import 'package:hiddify/features/profile/notifier/profiles_update_notifier.dart'
 import 'package:hiddify/features/profile/overview/profiles_notifier.dart';
 import 'package:hiddify/features/profile/widget/profile_tile.dart';
 import 'package:hiddify/features/proxy/active/ip_widget.dart';
+import 'package:hiddify/features/proxy/overview/known_delays.dart';
 import 'package:hiddify/features/proxy/overview/offline_servers.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
@@ -29,6 +30,7 @@ class ProfilesModal extends HookConsumerWidget {
     // Запоминаем выбор (сервер или «Автоматически»=lowest), поднимаем VPN и
     // закрываем лист. Применит выбор глобальный listener в App.
     void connectAndClose(String pendingTagDisplay, String label) {
+      rememberManualServer(ref, pendingTagDisplay);
       ref.read(pendingServerSelectionProvider.notifier).state = pendingTagDisplay;
       ref.read(connectionNotifierProvider.notifier).toggleConnection();
       ScaffoldMessenger.of(context).showSnackBar(
@@ -71,12 +73,23 @@ class ProfilesModal extends HookConsumerWidget {
                     trailing: const Icon(Icons.power_settings_new_rounded, size: 18),
                     onTap: () => connectAndClose('lowest', 'Автоматически'),
                   ),
-                  for (final name in servers)
+                  // servers — сырые имена из подписки: у резерва «по спискам»
+                  // в теге есть служебная метка §reserve§ (её понимает ядро).
+                  // В UI и в выборе она не нужна — App матчит по tagDisplay,
+                  // который тоже без метки, иначе резерв вручную не выбрался бы.
+                  for (final name in servers.map(stripTagMarks))
                     ListTile(
                       dense: true,
                       leading: IPCountryFlag(countryCode: countryCodeFromFlagEmoji(name), size: 34),
                       title: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis),
-                      trailing: const Icon(Icons.power_settings_new_rounded, size: 18),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          KnownDelayLabel(serverName: name),
+                          const SizedBox(width: 10),
+                          const Icon(Icons.power_settings_new_rounded, size: 18),
+                        ],
+                      ),
                       onTap: () => connectAndClose(name, name),
                     ),
                 ],

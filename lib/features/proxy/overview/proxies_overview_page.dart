@@ -77,6 +77,10 @@ class ProxiesOverviewPage extends HookConsumerWidget with PresLogger {
                     selected: group.selected == proxy.tag,
                     titleOverride: isAuto ? 'Автоматически' : null,
                     onTap: () async {
+                      // Выбор руками — запоминаем, чтобы вернуть после
+                      // перезапуска (память ядра теряет его при обновлении
+                      // подписки, см. Preferences.lastSelectedServer).
+                      rememberManualServer(ref, proxy.tagDisplay);
                       await ref.read(proxiesOverviewNotifierProvider.notifier).changeProxy(group.tag, proxy.tag);
                     },
                   );

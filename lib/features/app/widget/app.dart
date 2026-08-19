@@ -11,6 +11,7 @@ import 'package:hiddify/core/localization/locale_extensions.dart';
 import 'package:hiddify/core/localization/locale_preferences.dart';
 import 'package:hiddify/core/localization/translations.dart';
 import 'package:hiddify/core/model/constants.dart';
+import 'package:hiddify/core/preferences/general_preferences.dart';
 import 'package:hiddify/core/router/go_router/go_router_notifier.dart';
 import 'package:hiddify/core/router/go_router/helper/active_breakpoint_notifier.dart';
 import 'package:hiddify/core/theme/app_theme.dart';
@@ -23,6 +24,7 @@ import 'package:hiddify/features/connection/widget/connection_wrapper.dart';
 import 'package:hiddify/features/per_app_proxy/overview/per_app_proxy_service_notifier.dart';
 import 'package:hiddify/features/profile/notifier/profiles_update_notifier.dart';
 import 'package:hiddify/features/proxy/failover/shutdown_failover.dart';
+import 'package:hiddify/features/proxy/overview/known_delays.dart';
 import 'package:hiddify/features/proxy/overview/offline_servers.dart';
 import 'package:hiddify/features/proxy/overview/proxies_overview_notifier.dart';
 import 'package:hiddify/features/shortcut/shortcut_wrapper.dart';
@@ -81,6 +83,11 @@ class App extends HookConsumerWidget with WidgetsBindingObserver, PresLogger {
     final upgrader = ref.watch(upgraderProvider);
     final activeBreakpoint = Breakpoint(context).activeBreakpoint;
 
+    // Выбранный вручную сервер уже возвращён для текущего запуска ядра.
+    // Сбрасывается на Disconnected: каждый новый старт ядра снова забывает
+    // выбор (см. Preferences.lastSelectedServer), и его надо ставить заново.
+    final selectionRestored = useRef(false);
+
     ref.listen(foregroundProfilesUpdateNotifierProvider, (_, _) {});
 
     // Когда VPN отключается — догоняем отложенный синк подписки (миграция/refresh
@@ -94,6 +101,7 @@ class App extends HookConsumerWidget with WidgetsBindingObserver, PresLogger {
     ref.listen(connectionNotifierProvider, (prev, next) {
       final now = next.valueOrNull;
       if (now == null || !now.isDisconnected) return;
+      selectionRestored.value = false;
       Future.delayed(const Duration(seconds: 4), () {
         final current = ref.read(connectionNotifierProvider).valueOrNull;
         if (current != null && current.isDisconnected) {
@@ -110,6 +118,10 @@ class App extends HookConsumerWidget with WidgetsBindingObserver, PresLogger {
       final group = next.valueOrNull;
       if (group == null || group.items.isEmpty) return;
 
+      // 0) запомнить свежие пинги — их показываем в списке серверов, когда VPN
+      // выключён и мерить нечем (см. known_delays.dart).
+      rememberDelays(ref, group);
+
       // 1) применить сервер, выбранный в офлайн-списке
       final pending = ref.read(pendingServerSelectionProvider);
       if (pending != null) {
@@ -121,7 +133,29 @@ class App extends HookConsumerWidget with WidgetsBindingObserver, PresLogger {
         return;
       }
 
-      // 2) не используем round-robin "balance": если ядро выбрало его —
+      // 2) первое появление прокси после старта ядра — возвращаем сервер,
+      // который пользователь выбрал вручную последним. Само ядро его не
+      // помнит: свой выбор оно хранит тегом с номером позиции в подписке, а
+      // подписка приходит перетасованной, и после её обновления тег не
+      // находится → ядро берёт default (balance) → шаг 3 делал бы «Авто».
+      // Именно так автозапуск после перезагрузки терял выбранный сервер.
+      if (!selectionRestored.value) {
+        selectionRestored.value = true;
+        final remembered = ref.read(Preferences.lastSelectedServer);
+        if (remembered.isNotEmpty) {
+          final matches = group.items.where((e) => e.tagDisplay == remembered);
+          if (matches.isNotEmpty) {
+            if (group.selected != matches.first.tag) {
+              ref.read(proxiesOverviewNotifierProvider.notifier).changeProxy(group.tag, matches.first.tag);
+            }
+            return;
+          }
+          // Сервера больше нет в подписке (убрали/переименовали) — падаем в
+          // шаг 3, «Авто» тут единственный осмысленный запасной вариант.
+        }
+      }
+
+      // 3) не используем round-robin "balance": если ядро выбрало его —
       // переключаем на "lowest" (url-test, «Автоматически»).
       final balance = group.items.where((e) => e.tagDisplay.trim().toLowerCase() == 'balance');
       final lowest = group.items.where((e) => e.tagDisplay.trim().toLowerCase() == 'lowest');
